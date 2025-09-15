@@ -52,8 +52,57 @@ app.use(session({
   }
 }));
 
+// --- Startup diagnostic logs ---
+const viewsPath = path.join(__dirname, 'views');
+const publicPath = path.join(__dirname, 'public');
+console.log('[BOOT] Node', process.version, 'env=', process.env.NODE_ENV || 'dev', 'vercel=', !!process.env.VERCEL);
+console.log('[BOOT] paths views=', viewsPath, 'public=', publicPath);
+console.log('[BOOT] session store =', sessionStore ? 'MongoStore' : 'MemoryStore');
+
+// --- Request/Response logging ---
+app.use((req, res, next) => {
+  const start = Date.now();
+  console.log(`[REQ] ${req.method} ${req.originalUrl}`);
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    console.log(`[RES] ${req.method} ${req.originalUrl} -> ${res.statusCode} ${ms}ms`);
+  });
+  next();
+});
+
+// --- res.render logging wrapper ---
+app.use((req, res, next) => {
+  const originalRender = res.render.bind(res);
+  res.render = (view, ...args) => {
+    console.log(`[RENDER] view=${view}`);
+    const last = args[args.length - 1];
+    if (typeof last === 'function') {
+      const cb = last;
+      args[args.length - 1] = (err, html) => {
+        if (err) {
+          console.error(`[RENDER_ERR] view=${view}`, err);
+        } else {
+          console.log(`[RENDER_OK] view=${view} length=${html ? html.length : 0}`);
+        }
+        return cb(err, html);
+      };
+      return originalRender(view, ...args);
+    }
+    try {
+      const out = originalRender(view, ...args);
+      console.log(`[RENDER_OK] view=${view}`);
+      return out;
+    } catch (e) {
+      console.error(`[RENDER_ERR] view=${view}`, e);
+      throw e;
+    }
+  };
+  next();
+});
+
 // MongoDB connection (conditional to avoid hanging if no URI provided)
 if (process.env.MONGOURI) {
+  console.log('[BOOT] Connecting to MongoDB...');
   mongoose.connect(process.env.MONGOURI, {
     connectTimeoutMS: 30000, // 30 seconds
     socketTimeoutMS: 30000,  // 30 seconds
@@ -1361,6 +1410,13 @@ app.get('/admin/orders/new-fragment', isAuthenticated, hasPermission('orders'), 
     console.error('new-fragment error:', err);
     res.json({ html: '', latest: null });
   }
+});
+
+// --- Global error handler ---
+app.use((err, req, res, next) => {
+  console.error('[ERROR] Unhandled error for', req.method, req.originalUrl, err && err.stack ? err.stack : err);
+  if (res.headersSent) return next(err);
+  res.status(500).send('Internal Server Error');
 });
 
 // Export the app for Vercel/Serverless. Local dev uses server.js to listen.
