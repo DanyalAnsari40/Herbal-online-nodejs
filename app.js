@@ -28,14 +28,20 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 // Trust proxy for secure cookies behind Vercel/Proxies
 app.set('trust proxy', 1);
+// Normalize Mongo URI env var (support both MONGOURI and MONGO_URI)
+const MONGO_URI = process.env.MONGOURI || process.env.MONGO_URI;
+
 // Session store with safe fallback
 let sessionStore;
 try {
-  if (process.env.MONGOURI) {
+  const isValidMongoUri = (u) => typeof u === 'string' && (u.startsWith('mongodb://') || u.startsWith('mongodb+srv://'));
+  if (isValidMongoUri(MONGO_URI)) {
     sessionStore = MongoStore.create({
-      mongoUrl: process.env.MONGOURI,
+      mongoUrl: MONGO_URI,
       ttl: 14 * 24 * 60 * 60
     });
+  } else if (MONGO_URI) {
+    console.warn('[BOOT] Invalid MONGOURI provided; falling back to MemoryStore.');
   }
 } catch (e) {
   console.warn('MongoStore init failed, falling back to MemoryStore:', e?.message || e);
@@ -100,19 +106,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// MongoDB connection (conditional to avoid hanging if no URI provided)
-if (process.env.MONGOURI) {
+// MongoDB connection (only when a valid URI is provided)
+const isValidMongoUri = (u) => typeof u === 'string' && (u.startsWith('mongodb://') || u.startsWith('mongodb+srv://'));
+if (isValidMongoUri(MONGO_URI)) {
   console.log('[BOOT] Connecting to MongoDB...');
-  mongoose.connect(process.env.MONGOURI, {
+  mongoose.connect(MONGO_URI, {
     connectTimeoutMS: 30000, // 30 seconds
     socketTimeoutMS: 30000,  // 30 seconds
     serverSelectionTimeoutMS: 60000, // 60 seconds for server selection
-  }).then(() => console.log('MongoDB connected'))
-    .catch(err => console.error('MongoDB connection error:', err));
+  }).then(async () => {
+    console.log('MongoDB connected');
+    try {
+      await setupAdmin();
+    } catch (e) {
+      console.warn('setupAdmin failed:', e?.message || e);
+    }
+  }).catch(err => console.error('MongoDB connection error:', err));
 } else {
   // Disable buffering so operations fail fast instead of hanging indefinitely
   mongoose.set('bufferCommands', false);
-  console.warn('MONGOURI not set. Skipping MongoDB connection. Routes that require DB will error.');
+  console.warn('MONGOURI missing or invalid. Skipping MongoDB connection. Routes that require DB will error.');
 }
 
 // Order Schema
@@ -180,7 +193,7 @@ const setupAdmin = async () => {
     console.log('Admin user created');
   }
 };
-setupAdmin();
+// setupAdmin will be invoked after successful DB connection above
 
 // Middleware to check authentication
 const isAuthenticated = (req, res, next) => {
