@@ -8,10 +8,13 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
+const path = require('path');
+const MongoStore = require('connect-mongo');
 // for Finance mangemnet
 const Finance = require('./models/Finance');
 const multer = require('multer');
-const upload = multer({ dest: 'public/uploads/' });
+// Use memory storage on Vercel (serverless FS is read-only); disk storage locally
+const upload = multer(process.env.VERCEL ? { storage: multer.memoryStorage() } : { dest: 'public/uploads/' });
 const LandingOrder = require('./models/Order'); // your simple schema: name, phone, createdAt
 const { Parser } = require('json2csv');
 
@@ -20,12 +23,24 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.set('view engine', 'ejs');
-app.use(express.static('public'));
+// Absolute paths for views/static for Vercel
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
+// Trust proxy for secure cookies behind Vercel/Proxies
+app.set('trust proxy', 1);
 app.use(session({
-  secret: 'your-secret-key',
+  secret: process.env.SESSION_SECRET || 'change-this-secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false } // Set to true in production with HTTPS
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGOURI,
+    ttl: 14 * 24 * 60 * 60
+  }),
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'lax'
+  }
 }));
 
 // MongoDB connection
@@ -53,7 +68,7 @@ const orderSchema = new mongoose.Schema({
   },
   product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: false }, // made optional
 
-  review: { type: String },  // <-- 🔥 NEW field
+  review: { type: String },  // <-- NEW field
   handledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
 });
 const Order = mongoose.model('Order', orderSchema);
@@ -1053,7 +1068,7 @@ app.post('/admin/attendence/checkin', isAuthenticated, async (req, res) => {
   try {
     const now = new Date();
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setHours(0,0,0,0);
     let attendance = await Attendance.findOne({ user: req.session.user.id, date: today });
     if (!attendance) {
       attendance = new Attendance({
@@ -1328,8 +1343,5 @@ app.get('/admin/orders/new-fragment', isAuthenticated, hasPermission('orders'), 
   }
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+// Export the app for Vercel/Serverless. Local dev uses server.js to listen.
+module.exports = app;
