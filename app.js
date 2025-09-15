@@ -31,6 +31,9 @@ app.set('trust proxy', 1);
 // Normalize Mongo URI env var (support both MONGOURI and MONGO_URI)
 const MONGO_URI = process.env.MONGOURI || process.env.MONGO_URI;
 
+// Track DB readiness
+let isDbReady = false;
+
 // Session store with safe fallback
 let sessionStore;
 try {
@@ -116,17 +119,45 @@ if (isValidMongoUri(MONGO_URI)) {
     serverSelectionTimeoutMS: 60000, // 60 seconds for server selection
   }).then(async () => {
     console.log('MongoDB connected');
+    isDbReady = true;
     try {
       await setupAdmin();
     } catch (e) {
       console.warn('setupAdmin failed:', e?.message || e);
     }
-  }).catch(err => console.error('MongoDB connection error:', err));
+  }).catch(err => {
+    isDbReady = false;
+    console.error('MongoDB connection error:', err);
+  });
+  mongoose.connection.on('disconnected', () => {
+    isDbReady = false;
+    console.warn('[DB] Disconnected');
+  });
 } else {
   // Disable buffering so operations fail fast instead of hanging indefinitely
   mongoose.set('bufferCommands', false);
   console.warn('MONGOURI missing or invalid. Skipping MongoDB connection. Routes that require DB will error.');
 }
+
+// Middleware: ensure DB is ready before routes that need DB
+const ensureDbReady = (req, res, next) => {
+  if (!isValidMongoUri(MONGO_URI)) {
+    console.warn('[DB] Missing/invalid MONGO_URI for', req.method, req.originalUrl);
+    if (req.path === '/login' && req.method === 'POST') {
+      return res.status(503).render('login', { message: 'Database is not configured on the server. Please contact the administrator.' });
+    }
+    return res.status(503).send('Service Unavailable: database not configured');
+  }
+  if (!isDbReady || mongoose.connection.readyState !== 1) {
+    console.warn('[DB] Not ready for', req.method, req.originalUrl);
+    // For login, render login with a friendly message; otherwise 503 JSON
+    if (req.path === '/login' && req.method === 'POST') {
+      return res.status(503).render('login', { message: 'Server database is starting up. Please try again in a moment.' });
+    }
+    return res.status(503).send('Service Unavailable: database not ready');
+  }
+  next();
+};
 
 // Order Schema
 const orderSchema = new mongoose.Schema({
@@ -229,7 +260,7 @@ app.get('/login', (req, res) => {
 });
 
 // Login Handler
-app.post('/login', async (req, res) => {
+app.post('/login', ensureDbReady, async (req, res) => {
   try {
     const { email, password } = req.body;
     const employee = await Employee.findOne({ email });
