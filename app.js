@@ -28,14 +28,23 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 // Trust proxy for secure cookies behind Vercel/Proxies
 app.set('trust proxy', 1);
+// Session store with safe fallback
+let sessionStore;
+try {
+  if (process.env.MONGOURI) {
+    sessionStore = MongoStore.create({
+      mongoUrl: process.env.MONGOURI,
+      ttl: 14 * 24 * 60 * 60
+    });
+  }
+} catch (e) {
+  console.warn('MongoStore init failed, falling back to MemoryStore:', e?.message || e);
+}
 app.use(session({
   secret: process.env.SESSION_SECRET || 'change-this-secret',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGOURI,
-    ttl: 14 * 24 * 60 * 60
-  }),
+  store: sessionStore,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
@@ -43,13 +52,19 @@ app.use(session({
   }
 }));
 
-// MongoDB connection
-mongoose.connect(process.env.MONGOURI, {
-  connectTimeoutMS: 30000, // 30 seconds
-  socketTimeoutMS: 30000,  // 30 seconds
-  serverSelectionTimeoutMS: 60000, // 60 seconds for server selection
-}).then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+// MongoDB connection (conditional to avoid hanging if no URI provided)
+if (process.env.MONGOURI) {
+  mongoose.connect(process.env.MONGOURI, {
+    connectTimeoutMS: 30000, // 30 seconds
+    socketTimeoutMS: 30000,  // 30 seconds
+    serverSelectionTimeoutMS: 60000, // 60 seconds for server selection
+  }).then(() => console.log('MongoDB connected'))
+    .catch(err => console.error('MongoDB connection error:', err));
+} else {
+  // Disable buffering so operations fail fast instead of hanging indefinitely
+  mongoose.set('bufferCommands', false);
+  console.warn('MONGOURI not set. Skipping MongoDB connection. Routes that require DB will error.');
+}
 
 // Order Schema
 const orderSchema = new mongoose.Schema({
@@ -186,6 +201,11 @@ app.get('/logout', (req, res) => {
 app.get('/', (req, res) => {
   const message = req.query.success ? 'آرڈ درج ہوگیا ہے' : null;
   res.render('index', { message });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ ok: true });
 });
 // orders
 app.post('/order', async (req, res) => {
