@@ -1906,7 +1906,15 @@
                 if (pickupEl && !pickupEl.value) pickupEl.placeholder = `Try ${knownCodes[city]} if needed`;
               }
             } catch(_) {}
-            setTimeout(() => loadPostexCities(), 100);
+            setTimeout(() => {
+              loadPostexCities();
+              // Initialize product search when modal opens
+              try {
+                initPostexProductSearchOnOpen();
+              } catch (error) {
+                console.error('Error initializing PostEx product search:', error);
+              }
+            }, 100);
           }
           window.closePostexModal = function () {
             const modal = document.getElementById('postexModal');
@@ -1929,7 +1937,11 @@
           }
 
           // Product search functionality for PostEx Order Detail
-          (function initPostexProductSearch() {
+          let postexProductSearchInitialized = false;
+          
+          function initPostexProductSearchOnOpen() {
+            if (postexProductSearchInitialized) return;
+            
             const searchInput = document.getElementById('orderDetail');
             const dropdown = document.getElementById('postex_product_dropdown');
             const productIdInput = document.getElementById('postex_selected_product_id');
@@ -1937,7 +1949,19 @@
             const stockText = document.getElementById('postex_stock_text');
             const itemsInput = document.getElementById('items');
             
-            if (!searchInput || !dropdown || !productIdInput) return;
+            console.log('PostEx Product Search - Elements found:', {
+              searchInput: !!searchInput,
+              dropdown: !!dropdown,
+              productIdInput: !!productIdInput,
+              stockInfo: !!stockInfo,
+              stockText: !!stockText,
+              itemsInput: !!itemsInput
+            });
+            
+            if (!searchInput || !dropdown || !productIdInput) {
+              console.error('PostEx Product Search - Missing required elements');
+              return;
+            }
             
             let searchTimeout;
             let selectedProduct = null;
@@ -2030,7 +2054,10 @@
                 dropdown.classList.add('hidden');
               }
             });
-          })();
+            
+            postexProductSearchInitialized = true;
+            console.log('PostEx Product Search - Initialized successfully');
+          }
 
           async function loadPostexCities() {
             const dropdown = document.getElementById('cityName');
