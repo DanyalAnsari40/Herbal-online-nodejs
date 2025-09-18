@@ -178,6 +178,36 @@ const orderSchema = new mongoose.Schema({
 
   review: { type: String },  // <-- NEW field
   handledBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+  
+  // TCS-specific fields
+  tcsConsignmentNo: { type: String }, // TCS tracking number
+  tcsBookingData: { type: Object }, // Store complete TCS booking response
+  codAmount: { type: Number, default: 0 }, // Cash on Delivery amount
+  weightInKg: { type: Number }, // Package weight
+  pieces: { type: Number, default: 1 }, // Number of pieces
+  isFragile: { type: Boolean, default: false }, // Fragile package
+  contentDescription: { type: String }, // Product name/description
+  
+  // M&P-specific fields
+  mnpReferenceId: { type: String }, // M&P tracking/reference number
+  mnpBookingData: { type: Object }, // Store complete M&P booking response
+  destinationCity: { type: String }, // Destination city for M&P
+  customerReferenceNo: { type: String }, // Customer reference number
+  insuranceValue: { type: Number, default: 0 }, // Insurance value
+  locationID: { type: String }, // M&P location ID
+  returnLocation: { type: String }, // Return location
+  subAccountId: { type: String }, // Sub account ID
+  
+  // PostEx-specific fields
+  postexTrackingNumber: { type: String }, // PostEx tracking number
+  postexBookingData: { type: Object }, // Store complete PostEx booking response
+  postexOrderRefNumber: { type: String }, // PostEx order reference number
+  invoicePayment: { type: Number, default: 0 }, // Invoice payment amount
+  invoiceDivision: { type: Number, default: 1 }, // Invoice division
+  orderType: { type: String, default: 'Normal' }, // Order type (Normal, Reverse, Replacement)
+  transactionNotes: { type: String }, // Transaction notes
+  pickupAddressCode: { type: String }, // Pickup address code
+  storeAddressCode: { type: String } // Store address code
 });
 const Order = mongoose.model('Order', orderSchema);
 // module.exports = mongoose.model("LandingOrder", orderSchema);
@@ -1138,6 +1168,26 @@ app.post('/api/tcs/cities', isAuthenticated, async (req, res) => {
   }
 });
 
+// Product search API for dropdown functionality
+app.get('/api/products/search', isAuthenticated, async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 1) {
+      return res.json([]);
+    }
+    
+    const products = await Product.find({
+      name: { $regex: q.trim(), $options: 'i' },
+      stock: { $gt: 0 } // Only return products with stock
+    }).select('name stock _id').limit(10);
+    
+    res.json(products);
+  } catch (err) {
+    console.error('Product search error:', err);
+    res.status(500).json({ message: 'Server error searching products' });
+  }
+});
+
 // Booking proxy: POST -> POST
 app.post('/api/tcs/booking', isAuthenticated, async (req, res) => {
   try {
@@ -1146,6 +1196,50 @@ app.post('/api/tcs/booking', isAuthenticated, async (req, res) => {
     if (!accessToken) {
       return res.status(500).json({ message: 'Missing TCS_ACCESS_TOKEN on server' });
     }
+    
+    // Extract product info and validate stock
+    const { productId, pieces } = req.body;
+    if (productId && pieces) {
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(400).json({ message: 'Product not found' });
+      }
+      if (product.stock < pieces) {
+        return res.status(400).json({ message: `Insufficient stock. Available: ${product.stock}, Requested: ${pieces}` });
+      }
+      
+      // Reduce stock and create finance record
+      product.stock -= parseInt(pieces);
+      await product.save();
+      
+      await Finance.create({
+        type: 'order',
+        description: `TCS Order for ${product.name} x${pieces}`,
+        cost: product.costPrice * pieces,
+        revenue: product.price * pieces,
+        date: new Date()
+      });
+      
+      // Create order record with TCS-specific fields
+      await Order.create({
+        product: productId,
+        customerName: req.body.consigneeinfo?.firstname + ' ' + (req.body.consigneeinfo?.middlename || '') + ' ' + (req.body.consigneeinfo?.lastname || ''),
+        phone: req.body.consigneeinfo?.mobile,
+        address: req.body.consigneeinfo?.address1,
+        city: req.body.consigneeinfo?.cityname,
+        quantity: pieces,
+        service: 'TCS',
+        handledBy: req.session.user.id,
+        pickupMethod: 'delivery',
+        // TCS-specific fields
+        codAmount: req.body.shipmentinfo?.codamount || 0,
+        weightInKg: req.body.shipmentinfo?.weightinkg || 0,
+        pieces: pieces,
+        isFragile: req.body.shipmentinfo?.fragile || false,
+        contentDescription: product.name
+      });
+    }
+    
     const body = { ...(req.body || {}) };
     body.accesstoken = accessToken;
     const response = await fetch('https://ociconnect.tcscourier.com/ecom/api/booking/create', {
@@ -1160,10 +1254,243 @@ app.post('/api/tcs/booking', isAuthenticated, async (req, res) => {
     if (!response.ok) {
       return res.status(response.status).json(data);
     }
+    
+    // If TCS booking was successful and we have product info, update the order with tracking details
+    if (data && productId && pieces) {
+      try {
+        const order = await Order.findOne({
+          product: productId,
+          handledBy: req.session.user.id,
+          service: 'TCS'
+        }).sort({ createdAt: -1 });
+        
+        if (order) {
+          order.tcsConsignmentNo = data.consignmentNumber || data.trackingNumber || data.consignmentno;
+          order.tcsBookingData = data;
+          order.trackingId = data.consignmentNumber || data.trackingNumber || data.consignmentno;
+          await order.save();
+        }
+      } catch (updateErr) {
+        console.error('Error updating order with TCS tracking:', updateErr);
+        // Don't fail the response, just log the error
+      }
+    }
+    
     res.json(data);
   } catch (err) {
     console.error('TCS booking proxy error:', err);
     res.status(500).json({ message: 'Server error creating TCS booking' });
+  }
+});
+
+// M&P Booking proxy with stock validation
+app.post('/api/mnp/booking', isAuthenticated, async (req, res) => {
+  try {
+    // Extract product info and validate stock
+    const { productId, piecesCount } = req.body;
+    if (productId && piecesCount) {
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(400).json({ message: 'Product not found' });
+      }
+      if (product.stock < piecesCount) {
+        return res.status(400).json({ message: `Insufficient stock. Available: ${product.stock}, Requested: ${piecesCount}` });
+      }
+      
+      // Reduce stock and create finance record
+      product.stock -= parseInt(piecesCount);
+      await product.save();
+      
+      await Finance.create({
+        type: 'order',
+        description: `M&P Order for ${product.name} x${piecesCount}`,
+        cost: product.costPrice * piecesCount,
+        revenue: product.price * piecesCount,
+        date: new Date()
+      });
+      
+      // Create order record with M&P-specific fields
+      await Order.create({
+        product: productId,
+        customerName: req.body.consigneeName,
+        phone: req.body.consigneeMobNo,
+        address: req.body.consigneeAddress,
+        city: req.body.destinationCityName,
+        quantity: piecesCount,
+        service: 'M&P',
+        handledBy: req.session.user.id,
+        pickupMethod: 'delivery',
+        // Common fields
+        codAmount: req.body.codAmount || 0,
+        weightInKg: req.body.weight || 0,
+        pieces: piecesCount,
+        isFragile: req.body.fragile === 'Y',
+        contentDescription: product.name,
+        email: req.body.consigneeEmail,
+        // M&P-specific fields
+        destinationCity: req.body.destinationCityName,
+        customerReferenceNo: req.body.custRefNo,
+        insuranceValue: req.body.insuranceValue || 0,
+        locationID: req.body.locationID,
+        returnLocation: req.body.ReturnLocation,
+        subAccountId: req.body.subAccountId
+      });
+    }
+    
+    // Forward the request to M&P API
+    const mnpData = { ...req.body };
+    // Remove our custom fields that M&P API doesn't need
+    delete mnpData.productId;
+    delete mnpData.piecesCount;
+    
+    const response = await fetch('https://mnpcourier.com/mycodapi/api/Booking/InsertBookingData', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(mnpData)
+    });
+    
+    const data = await response.json().catch(() => ({}));
+    
+    // If M&P booking was successful and we have product info, update the order with tracking details
+    if (data && productId && piecesCount) {
+      try {
+        const order = await Order.findOne({
+          product: productId,
+          handledBy: req.session.user.id,
+          service: 'M&P'
+        }).sort({ createdAt: -1 });
+        
+        if (order) {
+          // M&P API response structure may vary, adapt as needed
+          const trackingId = data.orderReferenceId || data.consignment || data.trackingNo || data.referenceId;
+          if (trackingId) {
+            order.trackingId = trackingId;
+            order.mnpReferenceId = trackingId;
+            order.mnpBookingData = data; // Store complete response
+            await order.save();
+          }
+        }
+      } catch (updateErr) {
+        console.error('Error updating M&P order with tracking:', updateErr);
+        // Don't fail the response, just log the error
+      }
+    }
+    
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+    
+    res.json(data);
+  } catch (err) {
+    console.error('M&P booking proxy error:', err);
+    res.status(500).json({ message: 'Server error creating M&P booking' });
+  }
+});
+
+// PostEx Booking proxy with stock validation
+app.post('/api/postex/booking', isAuthenticated, async (req, res) => {
+  try {
+    // Extract product info and validate stock
+    const { productId, itemsCount } = req.body;
+    if (productId && itemsCount) {
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(400).json({ message: 'Product not found' });
+      }
+      if (product.stock < itemsCount) {
+        return res.status(400).json({ message: `Insufficient stock. Available: ${product.stock}, Requested: ${itemsCount}` });
+      }
+      
+      // Reduce stock and create finance record
+      product.stock -= parseInt(itemsCount);
+      await product.save();
+      
+      await Finance.create({
+        type: 'order',
+        description: `PostEx Order for ${product.name} x${itemsCount}`,
+        cost: product.costPrice * itemsCount,
+        revenue: product.price * itemsCount,
+        date: new Date()
+      });
+      
+      // Create order record with PostEx-specific fields
+      await Order.create({
+        product: productId,
+        customerName: req.body.customerName,
+        phone: req.body.customerPhone,
+        address: req.body.deliveryAddress,
+        city: req.body.cityName,
+        quantity: itemsCount,
+        service: 'PostEx',
+        handledBy: req.session.user.id,
+        pickupMethod: 'delivery',
+        // Common fields
+        pieces: itemsCount,
+        contentDescription: product.name,
+        // PostEx-specific fields
+        postexOrderRefNumber: req.body.orderRefNumber,
+        invoicePayment: req.body.invoicePayment || 0,
+        invoiceDivision: req.body.invoiceDivision || 1,
+        orderType: req.body.orderType || 'Normal',
+        transactionNotes: req.body.transactionNotes,
+        pickupAddressCode: req.body.pickupAddressCode,
+        storeAddressCode: req.body.storeAddressCode
+      });
+    }
+    
+    // Forward the request to PostEx API
+    const postexData = { ...req.body };
+    // Remove our custom fields that PostEx API doesn't need
+    delete postexData.productId;
+    delete postexData.itemsCount;
+    
+    const token = 'YzIxZGU5YjY0N2M0NDU1ZGE0ZDM5ZmVlOTA3ZWEwODc6NGI4OTRjNzcyNjRkNDA1NTk3ZDNjODQwNDhhYmQ1Mjg=';
+    const response = await fetch('https://api.postex.pk/services/integration/api/order/v3/create-order', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'token': token
+      },
+      body: JSON.stringify(postexData)
+    });
+    
+    const data = await response.json().catch(() => ({}));
+    
+    // If PostEx booking was successful and we have product info, update the order with tracking details
+    if (data && productId && itemsCount) {
+      try {
+        const order = await Order.findOne({
+          product: productId,
+          handledBy: req.session.user.id,
+          service: 'PostEx'
+        }).sort({ createdAt: -1 });
+        
+        if (order) {
+          // PostEx API response structure
+          const trackingId = data.dist?.trackingNumber || data.trackingNumber || data.orderRefNumber;
+          if (trackingId) {
+            order.trackingId = trackingId;
+            order.postexTrackingNumber = trackingId;
+            order.postexBookingData = data; // Store complete response
+            await order.save();
+          }
+        }
+      } catch (updateErr) {
+        console.error('Error updating PostEx order with tracking:', updateErr);
+        // Don't fail the response, just log the error
+      }
+    }
+    
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+    
+    res.json(data);
+  } catch (err) {
+    console.error('PostEx booking proxy error:', err);
+    res.status(500).json({ message: 'Server error creating PostEx booking' });
   }
 });
 

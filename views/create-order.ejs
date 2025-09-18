@@ -739,19 +739,28 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Cost Center Code *</label>
-                    <input type="text" id="tcs_ship_costcentercode" class="w-full p-3 border border-gray-300 rounded-lg">
+                    <input type="text" id="tcs_ship_costcentercode" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
                   </div>
                   <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Reference No</label>
                     <input type="text" id="tcs_ship_referenceno" class="w-full p-3 border border-gray-300 rounded-lg">
                   </div>
                   <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Content Description</label>
-                    <input type="text" id="tcs_ship_contentdesc" class="w-full p-3 border border-gray-300 rounded-lg">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Pieces *</label>
+                    <input type="number" id="tcs_ship_pieces" class="w-full p-3 border border-gray-300 rounded-lg" min="1" step="1" value="1">
                   </div>
-                  <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Service Code *</label>
-                    <input type="text" id="tcs_ship_servicecode" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="e.g., O">
+                  <div class="md:col-span-3">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Content Description *</label>
+                    <div class="relative">
+                      <input type="text" id="tcs_ship_contentdesc" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" placeholder="Search for products..." autocomplete="off">
+                      <input type="hidden" id="tcs_selected_product_id" value="">
+                      <div id="tcs_product_dropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                        <!-- Product options will be populated here -->
+                      </div>
+                    </div>
+                    <div id="tcs_stock_info" class="mt-2 text-sm text-gray-600 hidden">
+                      <span id="tcs_stock_text"></span>
+                    </div>
                   </div>
                   <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Currency *</label>
@@ -764,10 +773,6 @@
                   <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Weight in KG *</label>
                     <input type="number" id="tcs_ship_weightinkg" class="w-full p-3 border border-gray-300 rounded-lg" min="0.5" step="0.1">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Pieces *</label>
-                    <input type="number" id="tcs_ship_pieces" class="w-full p-3 border border-gray-300 rounded-lg" min="1" step="1" value="1">
                   </div>
                   <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Fragile *</label>
@@ -1126,11 +1131,6 @@
                     </select>
                   </div>
                   <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Pieces *</label>
-                    <input type="number" id="pieces" value="1" min="1" required
-                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                  </div>
-                  <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Weight (kg) *</label>
                     <input type="number" id="weight" value="1" min="0" step="0.01" required
                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -1145,10 +1145,23 @@
                     <input type="text" id="custRefNo" value="T-786" required
                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                   </div>
-                  <div class="md:col-span-2">
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Product Details</label>
-                    <input type="text" id="productDetails" value="One White T-Shirt"
+                  <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Pieces *</label>
+                    <input type="number" id="pieces" value="1" min="1" required
                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  </div>
+                  <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Product Details *</label>
+                    <div class="relative">
+                      <input type="text" id="productDetails" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Search for products..." autocomplete="off">
+                      <input type="hidden" id="mnp_selected_product_id" value="">
+                      <div id="mnp_product_dropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                        <!-- Product options will be populated here -->
+                      </div>
+                    </div>
+                    <div id="mnp_stock_info" class="mt-2 text-sm text-gray-600 hidden">
+                      <span id="mnp_stock_text"></span>
+                    </div>
                   </div>
                   <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Fragile</label>
@@ -1251,8 +1264,17 @@
                   <input type="number" id="invoicePayment" required min="0" step="0.01" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                 </div>
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-semibold text-gray-700 mb-2">Order Detail</label>
-                  <input type="text" id="orderDetail" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Order Detail *</label>
+                  <div class="relative">
+                    <input type="text" id="orderDetail" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Search for products..." autocomplete="off">
+                    <input type="hidden" id="postex_selected_product_id" value="">
+                    <div id="postex_product_dropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                      <!-- Product options will be populated here -->
+                    </div>
+                  </div>
+                  <div id="postex_stock_info" class="mt-2 text-sm text-gray-600 hidden">
+                    <span id="postex_stock_text"></span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1614,7 +1636,124 @@
           function closeMnpModal() {
             document.getElementById('mnpModal').classList.remove('flex');
             document.getElementById('mnpModal').classList.add('hidden');
+            
+            // Reset form and clear product selection
+            const form = document.getElementById('mnpForm');
+            if (form) form.reset();
+            
+            // Clear product selection
+            const productIdInput = document.getElementById('mnp_selected_product_id');
+            const stockInfo = document.getElementById('mnp_stock_info');
+            const dropdown = document.getElementById('mnp_product_dropdown');
+            
+            if (productIdInput) productIdInput.value = '';
+            if (stockInfo) stockInfo.classList.add('hidden');
+            if (dropdown) dropdown.classList.add('hidden');
           }
+
+          // Product search functionality for M&P Product Details
+          (function initMnpProductSearch() {
+            const searchInput = document.getElementById('productDetails');
+            const dropdown = document.getElementById('mnp_product_dropdown');
+            const productIdInput = document.getElementById('mnp_selected_product_id');
+            const stockInfo = document.getElementById('mnp_stock_info');
+            const stockText = document.getElementById('mnp_stock_text');
+            const piecesInput = document.getElementById('pieces');
+            
+            if (!searchInput || !dropdown || !productIdInput) return;
+            
+            let searchTimeout;
+            let selectedProduct = null;
+            
+            // Search products as user types
+            searchInput.addEventListener('input', function() {
+              const query = this.value.trim();
+              
+              clearTimeout(searchTimeout);
+              
+              if (query.length < 1) {
+                dropdown.classList.add('hidden');
+                productIdInput.value = '';
+                selectedProduct = null;
+                stockInfo.classList.add('hidden');
+                return;
+              }
+              
+              searchTimeout = setTimeout(async () => {
+                try {
+                  const response = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`);
+                  const products = await response.json();
+                  
+                  dropdown.innerHTML = '';
+                  
+                  if (products.length === 0) {
+                    dropdown.innerHTML = '<div class="p-3 text-gray-500">No products found</div>';
+                  } else {
+                    products.forEach(product => {
+                      const div = document.createElement('div');
+                      div.className = 'p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0';
+                      div.innerHTML = `
+                        <div class="font-medium">${product.name}</div>
+                        <div class="text-sm text-gray-600">Stock: ${product.stock} available</div>
+                      `;
+                      div.addEventListener('click', () => selectProduct(product));
+                      dropdown.appendChild(div);
+                    });
+                  }
+                  
+                  dropdown.classList.remove('hidden');
+                } catch (error) {
+                  console.error('Product search error:', error);
+                  dropdown.innerHTML = '<div class="p-3 text-red-500">Error searching products</div>';
+                  dropdown.classList.remove('hidden');
+                }
+              }, 300);
+            });
+            
+            // Select a product
+            function selectProduct(product) {
+              selectedProduct = product;
+              searchInput.value = product.name;
+              productIdInput.value = product._id;
+              dropdown.classList.add('hidden');
+              
+              // Show stock information
+              stockText.textContent = `Available stock: ${product.stock}`;
+              stockInfo.classList.remove('hidden');
+              
+              // Validate pieces against stock
+              validateStock();
+            }
+            
+            // Validate stock when pieces change
+            if (piecesInput) {
+              piecesInput.addEventListener('input', validateStock);
+            }
+            
+            function validateStock() {
+              if (!selectedProduct || !piecesInput) return;
+              
+              const pieces = parseInt(piecesInput.value) || 0;
+              const available = selectedProduct.stock;
+              
+              if (pieces > available) {
+                stockText.textContent = `Insufficient stock! Available: ${available}, Requested: ${pieces}`;
+                stockText.className = 'text-red-600';
+                piecesInput.classList.add('border-red-500');
+              } else {
+                stockText.textContent = `Available stock: ${available}`;
+                stockText.className = 'text-green-600';
+                piecesInput.classList.remove('border-red-500');
+              }
+            }
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+              if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+              }
+            });
+          })();
 
           // Load Cities into dropdown (M&P)
           async function loadMnpCities() {
@@ -1670,6 +1809,15 @@
               return el ? el.value : '';
             };
 
+            // Validate product selection and stock
+            const productId = getVal('mnp_selected_product_id');
+            const pieces = parseInt(getVal('pieces')) || 0;
+            
+            if (!productId) {
+              if (typeof showToast === 'function') showToast('Please select a product from the dropdown', 'error');
+              return;
+            }
+
             const formData = {
               consigneeName: getVal('consigneeName'),
               consigneeAddress: getVal('consigneeAddress'),
@@ -1678,7 +1826,7 @@
               consigneeCell: '',
               consigneeEmail: getVal('consigneeEmail'),
               destinationCityName: getVal('destinationCityName'),
-              pieces: getVal('pieces'),
+              pieces: pieces,
               weight: getVal('weight'),
               codAmount: getVal('codAmount'),
               custRefNo: getVal('custRefNo'),
@@ -1694,9 +1842,12 @@
               username,
               password,
               accountNo,
+              // Add product info for backend processing
+              productId: productId,
+              piecesCount: pieces
             };
 
-            const url = `https://mnpcourier.com/mycodapi/api/Booking/InsertBookingData`;
+            const url = `/api/mnp/booking`;
 
             try {
               const response = await fetch(url, {
@@ -1727,8 +1878,7 @@
 
               if (success) {
                 showToast(`${message}${ref ? ` (Ref: ${ref})` : ''}`, 'success');
-                closeMnpModal();
-                document.getElementById('mnpForm').reset();
+                closeMnpModal(); // This will also reset the form
               } else {
                 showToast(`Booking failed${message ? `: ${message}` : ''}`,'error');
               }
@@ -1763,7 +1913,124 @@
             if (!modal) return;
             modal.classList.remove('flex');
             modal.classList.add('hidden');
+            
+            // Reset form and clear product selection
+            const form = document.getElementById('postexForm');
+            if (form) form.reset();
+            
+            // Clear product selection
+            const productIdInput = document.getElementById('postex_selected_product_id');
+            const stockInfo = document.getElementById('postex_stock_info');
+            const dropdown = document.getElementById('postex_product_dropdown');
+            
+            if (productIdInput) productIdInput.value = '';
+            if (stockInfo) stockInfo.classList.add('hidden');
+            if (dropdown) dropdown.classList.add('hidden');
           }
+
+          // Product search functionality for PostEx Order Detail
+          (function initPostexProductSearch() {
+            const searchInput = document.getElementById('orderDetail');
+            const dropdown = document.getElementById('postex_product_dropdown');
+            const productIdInput = document.getElementById('postex_selected_product_id');
+            const stockInfo = document.getElementById('postex_stock_info');
+            const stockText = document.getElementById('postex_stock_text');
+            const itemsInput = document.getElementById('items');
+            
+            if (!searchInput || !dropdown || !productIdInput) return;
+            
+            let searchTimeout;
+            let selectedProduct = null;
+            
+            // Search products as user types
+            searchInput.addEventListener('input', function() {
+              const query = this.value.trim();
+              
+              clearTimeout(searchTimeout);
+              
+              if (query.length < 1) {
+                dropdown.classList.add('hidden');
+                productIdInput.value = '';
+                selectedProduct = null;
+                stockInfo.classList.add('hidden');
+                return;
+              }
+              
+              searchTimeout = setTimeout(async () => {
+                try {
+                  const response = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`);
+                  const products = await response.json();
+                  
+                  dropdown.innerHTML = '';
+                  
+                  if (products.length === 0) {
+                    dropdown.innerHTML = '<div class="p-3 text-gray-500">No products found</div>';
+                  } else {
+                    products.forEach(product => {
+                      const div = document.createElement('div');
+                      div.className = 'p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0';
+                      div.innerHTML = `
+                        <div class="font-medium">${product.name}</div>
+                        <div class="text-sm text-gray-600">Stock: ${product.stock} available</div>
+                      `;
+                      div.addEventListener('click', () => selectProduct(product));
+                      dropdown.appendChild(div);
+                    });
+                  }
+                  
+                  dropdown.classList.remove('hidden');
+                } catch (error) {
+                  console.error('Product search error:', error);
+                  dropdown.innerHTML = '<div class="p-3 text-red-500">Error searching products</div>';
+                  dropdown.classList.remove('hidden');
+                }
+              }, 300);
+            });
+            
+            // Select a product
+            function selectProduct(product) {
+              selectedProduct = product;
+              searchInput.value = product.name;
+              productIdInput.value = product._id;
+              dropdown.classList.add('hidden');
+              
+              // Show stock information
+              stockText.textContent = `Available stock: ${product.stock}`;
+              stockInfo.classList.remove('hidden');
+              
+              // Validate items against stock
+              validateStock();
+            }
+            
+            // Validate stock when items change
+            if (itemsInput) {
+              itemsInput.addEventListener('input', validateStock);
+            }
+            
+            function validateStock() {
+              if (!selectedProduct || !itemsInput) return;
+              
+              const items = parseInt(itemsInput.value) || 0;
+              const available = selectedProduct.stock;
+              
+              if (items > available) {
+                stockText.textContent = `Insufficient stock! Available: ${available}, Requested: ${items}`;
+                stockText.className = 'text-red-600';
+                itemsInput.classList.add('border-red-500');
+              } else {
+                stockText.textContent = `Available stock: ${available}`;
+                stockText.className = 'text-green-600';
+                itemsInput.classList.remove('border-red-500');
+              }
+            }
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+              if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+              }
+            });
+          })();
 
           async function loadPostexCities() {
             const dropdown = document.getElementById('cityName');
@@ -1834,6 +2101,14 @@
               if (!orderType) missing.push('orderType');
               // PostEx requires at least one of the codes
               if (!pickupAddressCode && !storeAddressCode) missing.push('pickup/store address code');
+              
+              // Validate product selection and stock
+              const productId = getVal('postex_selected_product_id');
+              if (!productId) {
+                if (typeof showToast === 'function') showToast('Please select a product from the dropdown', 'error');
+                return;
+              }
+              
               if (missing.length) {
                 if (typeof showToast === 'function') showToast(`Please fill required fields: ${missing.join(', ')}`,'error');
                 return;
@@ -1851,15 +2126,18 @@
                 orderDetail,
                 orderRefNumber,
                 orderType,
-                transactionNotes
+                transactionNotes,
+                // Add product info for backend processing
+                productId: productId,
+                itemsCount: items
               };
               // Prefer storeAddressCode if provided; else use pickupAddressCode
               if (storeAddressCode) payload.storeAddressCode = storeAddressCode;
               else if (pickupAddressCode) payload.pickupAddressCode = pickupAddressCode;
               try {
                 const doRequest = async (body) => {
-                  const res = await fetch('https://api.postex.pk/services/integration/api/order/v3/create-order', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json', 'token': token }, body: JSON.stringify(body)
+                  const res = await fetch('/api/postex/booking', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
                   });
                   const data = await res.json();
                   return { res, data };
@@ -1896,8 +2174,7 @@
                 if (ok) {
                   const tn = data?.dist?.trackingNumber || 'N/A';
                   if (typeof showToast === 'function') showToast(`PostEx order created. Tracking: ${tn}`, 'success');
-                  window.closePostexModal();
-                  form.reset();
+                  window.closePostexModal(); // This will also reset the form
                 } else {
                   const msg = data?.statusMessage || data?.message || 'Failed to create order';
                   if (/STORE ADDRESS CODE/i.test(msg)) {
@@ -2022,7 +2299,124 @@
             if (!modal) return;
             modal.classList.remove('flex');
             modal.classList.add('hidden');
+            
+            // Reset form and clear product selection
+            const form = document.getElementById('tcsForm');
+            if (form) form.reset();
+            
+            // Clear product selection
+            const productIdInput = document.getElementById('tcs_selected_product_id');
+            const stockInfo = document.getElementById('tcs_stock_info');
+            const dropdown = document.getElementById('tcs_product_dropdown');
+            
+            if (productIdInput) productIdInput.value = '';
+            if (stockInfo) stockInfo.classList.add('hidden');
+            if (dropdown) dropdown.classList.add('hidden');
           }
+
+          // Product search functionality for TCS Content Description
+          (function initTcsProductSearch() {
+            const searchInput = document.getElementById('tcs_ship_contentdesc');
+            const dropdown = document.getElementById('tcs_product_dropdown');
+            const productIdInput = document.getElementById('tcs_selected_product_id');
+            const stockInfo = document.getElementById('tcs_stock_info');
+            const stockText = document.getElementById('tcs_stock_text');
+            const piecesInput = document.getElementById('tcs_ship_pieces');
+            
+            if (!searchInput || !dropdown || !productIdInput) return;
+            
+            let searchTimeout;
+            let selectedProduct = null;
+            
+            // Search products as user types
+            searchInput.addEventListener('input', function() {
+              const query = this.value.trim();
+              
+              clearTimeout(searchTimeout);
+              
+              if (query.length < 1) {
+                dropdown.classList.add('hidden');
+                productIdInput.value = '';
+                selectedProduct = null;
+                stockInfo.classList.add('hidden');
+                return;
+              }
+              
+              searchTimeout = setTimeout(async () => {
+                try {
+                  const response = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`);
+                  const products = await response.json();
+                  
+                  dropdown.innerHTML = '';
+                  
+                  if (products.length === 0) {
+                    dropdown.innerHTML = '<div class="p-3 text-gray-500">No products found</div>';
+                  } else {
+                    products.forEach(product => {
+                      const div = document.createElement('div');
+                      div.className = 'p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0';
+                      div.innerHTML = `
+                        <div class="font-medium">${product.name}</div>
+                        <div class="text-sm text-gray-600">Stock: ${product.stock} available</div>
+                      `;
+                      div.addEventListener('click', () => selectProduct(product));
+                      dropdown.appendChild(div);
+                    });
+                  }
+                  
+                  dropdown.classList.remove('hidden');
+                } catch (error) {
+                  console.error('Product search error:', error);
+                  dropdown.innerHTML = '<div class="p-3 text-red-500">Error searching products</div>';
+                  dropdown.classList.remove('hidden');
+                }
+              }, 300);
+            });
+            
+            // Select a product
+            function selectProduct(product) {
+              selectedProduct = product;
+              searchInput.value = product.name;
+              productIdInput.value = product._id;
+              dropdown.classList.add('hidden');
+              
+              // Show stock information
+              stockText.textContent = `Available stock: ${product.stock}`;
+              stockInfo.classList.remove('hidden');
+              
+              // Validate pieces against stock
+              validateStock();
+            }
+            
+            // Validate stock when pieces change
+            if (piecesInput) {
+              piecesInput.addEventListener('input', validateStock);
+            }
+            
+            function validateStock() {
+              if (!selectedProduct || !piecesInput) return;
+              
+              const pieces = parseInt(piecesInput.value) || 0;
+              const available = selectedProduct.stock;
+              
+              if (pieces > available) {
+                stockText.textContent = `Insufficient stock! Available: ${available}, Requested: ${pieces}`;
+                stockText.className = 'text-red-600';
+                piecesInput.classList.add('border-red-500');
+              } else {
+                stockText.textContent = `Available stock: ${available}`;
+                stockText.className = 'text-green-600';
+                piecesInput.classList.remove('border-red-500');
+              }
+            }
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+              if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+              }
+            });
+          })();
 
           // Handle TCS form submission
           (function attachTcsSubmit(){
@@ -2138,12 +2532,20 @@
               if (!(shipmentinfo.codamount >= 0)) missing.push('codamount');
               if (!(shipmentinfo.weightinkg >= 0.5)) missing.push('weightinkg>=0.5');
               if (!(shipmentinfo.pieces >= 1)) missing.push('pieces>=1');
+              
+              // Validate product selection and stock
+              const productId = get('tcs_selected_product_id');
+              if (!productId) {
+                if (typeof showToast === 'function') showToast('Please select a product from the dropdown', 'error');
+                return;
+              }
+              
               if (missing.length) {
                 if (typeof showToast === 'function') showToast(`Please fill: ${missing.join(', ')}`, 'error');
                 return;
               }
 
-              const body = { consignmentno, shipperinfo, consigneeinfo, vendorinfo, shipmentinfo };
+              const body = { consignmentno, shipperinfo, consigneeinfo, vendorinfo, shipmentinfo, productId, pieces: shipmentinfo.pieces };
 
               try {
                 const res = await fetch('/api/tcs/booking', {
@@ -2155,8 +2557,7 @@
                 if (res.ok) {
                   if (typeof showToast === 'function') showToast('TCS order created successfully', 'success');
                   try { console.log('TCS create-order success:', data); } catch(_) {}
-                  closeTcsModal();
-                  form.reset();
+                  closeTcsModal(); // This will also reset the form
                 } else {
                   const msg = data?.message || data?.statusMessage || data?.StatusMessage || 'Failed to create TCS order';
                   if (typeof showToast === 'function') showToast(msg, 'error');
