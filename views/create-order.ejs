@@ -742,6 +742,10 @@
                     <input type="text" id="tcs_ship_costcentercode" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500">
                   </div>
                   <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Service Code *</label>
+                    <input type="text" id="tcs_ship_servicecode" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500" maxlength="6" minlength="1">
+                  </div>
+                  <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Reference No</label>
                     <input type="text" id="tcs_ship_referenceno" class="w-full p-3 border border-gray-300 rounded-lg">
                   </div>
@@ -2211,7 +2215,7 @@
             });
           })();
 
-          // TCS Modal Functions
+          //_______________________________________________________________ TCS Modal Functions
           function openTcsModal() {
             const modal = document.getElementById('tcsModal');
             if (!modal) return;
@@ -2499,9 +2503,9 @@
               // Shipment
               const shipmentinfo = {
                 costcentercode: get('tcs_ship_costcentercode'),
+                servicecode: get('tcs_ship_servicecode'),
                 referenceno: get('tcs_ship_referenceno') || undefined,
                 contentdesc: get('tcs_ship_contentdesc') || undefined,
-                servicecode: get('tcs_ship_servicecode'),
                 currency: get('tcs_ship_currency') || 'PKR',
                 codamount: Number(get('tcs_ship_codamount') || '0'),
                 weightinkg: Number(get('tcs_ship_weightinkg') || '0.5'),
@@ -2546,6 +2550,7 @@
               if (!consigneeinfo.mobile) missing.push('consignee.mobile');
               if (!shipmentinfo.costcentercode) missing.push('costcentercode');
               if (!shipmentinfo.servicecode) missing.push('servicecode');
+              if (shipmentinfo.servicecode && (shipmentinfo.servicecode.length < 1 || shipmentinfo.servicecode.length > 6)) missing.push('servicecode (1-6 chars)');
               if (!shipmentinfo.currency) missing.push('currency');
               if (!(shipmentinfo.codamount >= 0)) missing.push('codamount');
               if (!(shipmentinfo.weightinkg >= 0.5)) missing.push('weightinkg>=0.5');
