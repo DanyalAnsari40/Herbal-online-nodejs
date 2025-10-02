@@ -244,6 +244,11 @@ const setupAdmin = async () => {
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@company.com';
   const adminPassword = process.env.ADMIN_PASSWORD;
   
+  console.log('🔍 Admin setup check:');
+  console.log('- Admin Email:', adminEmail);
+  console.log('- Password provided:', adminPassword ? 'Yes' : 'No');
+  console.log('- Password length:', adminPassword ? adminPassword.length : 0);
+  
   if (!adminPassword) {
     console.warn('⚠️  ADMIN_PASSWORD not set in environment variables. Skipping admin setup.');
     return;
@@ -264,6 +269,8 @@ const setupAdmin = async () => {
       permissions: ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance']
     });
     console.log(`✅ Admin user created with email: ${adminEmail}`);
+  } else {
+    console.log(`ℹ️  Admin user already exists with email: ${adminEmail}`);
   }
 };
 // setupAdmin will be invoked after successful DB connection above
@@ -481,7 +488,7 @@ app.get('/health', (req, res) => {
 });
 // Landing page order submission with validation
 app.post('/order', (req, res, next) => {
-  const { name, phone } = req.body;
+  const { name, phone, productName } = req.body;
   
   if (!name || name.trim().length < 2) {
     return res.render('index', { message: 'Name is required (minimum 2 characters)' });
@@ -494,18 +501,103 @@ app.post('/order', (req, res, next) => {
   // Sanitize inputs
   req.body.name = validateInput.sanitizeString(name);
   req.body.phone = validateInput.sanitizeString(phone);
+  req.body.productName = productName ? validateInput.sanitizeString(productName) : 'Diabo Control';
   next();
 }, async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name, phone, productName } = req.body;
     if (!name || !phone) {
       return res.render('index', { message: 'Name and phone are required' });
     }
-    await LandingOrder.create({ name, phone });
+    await LandingOrder.create({ name, phone, productName: productName || 'Diabo Control' });
     res.redirect('/?success=1');
   } catch (err) {
     console.error(err);
     res.render('index', { message: 'آرڈ درج نہیں ہوا ' });
+  }
+});
+
+// 🚀 API Endpoint for Multiple Landing Pages
+// This endpoint can accept orders from any number of landing pages
+app.post('/api/order', async (req, res) => {
+  try {
+    const { 
+      name, 
+      phone, 
+      productName, 
+      email, 
+      address, 
+      city, 
+      source, 
+      campaign,
+      landingPageId,
+      utm_source,
+      utm_medium,
+      utm_campaign,
+      ...additionalFields 
+    } = req.body;
+
+    // Basic validation
+    if (!name || name.trim().length < 2) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Name is required (minimum 2 characters)' 
+      });
+    }
+
+    if (!phone || !validateInput.phone(phone)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Valid phone number is required' 
+      });
+    }
+
+    // Sanitize required inputs
+    const sanitizedData = {
+      name: validateInput.sanitizeString(name),
+      phone: validateInput.sanitizeString(phone),
+      productName: productName ? validateInput.sanitizeString(productName) : 'Default Product',
+    };
+
+    // Add optional fields if provided
+    if (email) sanitizedData.email = validateInput.sanitizeString(email);
+    if (address) sanitizedData.address = validateInput.sanitizeString(address);
+    if (city) sanitizedData.city = validateInput.sanitizeString(city);
+    if (source) sanitizedData.source = validateInput.sanitizeString(source);
+    if (campaign) sanitizedData.campaign = validateInput.sanitizeString(campaign);
+    if (landingPageId) sanitizedData.landingPageId = validateInput.sanitizeString(landingPageId);
+    if (utm_source) sanitizedData.utm_source = validateInput.sanitizeString(utm_source);
+    if (utm_medium) sanitizedData.utm_medium = validateInput.sanitizeString(utm_medium);
+    if (utm_campaign) sanitizedData.utm_campaign = validateInput.sanitizeString(utm_campaign);
+
+    // Store additional fields as metadata
+    if (Object.keys(additionalFields).length > 0) {
+      sanitizedData.metadata = additionalFields;
+    }
+
+    // Create order in database
+    const order = await LandingOrder.create(sanitizedData);
+
+    // Return success response
+    res.status(201).json({
+      success: true,
+      message: 'Order created successfully',
+      orderId: order._id,
+      data: {
+        name: order.name,
+        phone: order.phone,
+        productName: order.productName,
+        createdAt: order.createdAt
+      }
+    });
+
+  } catch (err) {
+    console.error('API Order Creation Error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create order',
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+    });
   }
 });
 
@@ -614,7 +706,8 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } }
+        { phone: { $regex: search, $options: 'i' } },
+        { productName: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -1862,7 +1955,8 @@ app.get('/admin/orders/new-fragment', isAuthenticated, hasPermission('orders'), 
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } }
+        { phone: { $regex: search, $options: 'i' } },
+        { productName: { $regex: search, $options: 'i' } }
       ];
     }
     if (date) {

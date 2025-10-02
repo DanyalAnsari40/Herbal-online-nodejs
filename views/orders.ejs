@@ -331,6 +331,7 @@
           <tr>
             <th class="py-4 px-6 text-left"><i class="fas fa-user mr-2"></i>Name</th>
             <th class="py-4 px-6 text-left"><i class="fas fa-phone mr-2"></i>Phone</th>
+            <th class="py-4 px-6 text-left"><i class="fas fa-box mr-2"></i>Product Name</th>
             <th class="py-4 px-6 text-left"><i class="fas fa-calendar mr-2"></i>Created</th>
             <th class="py-4 px-6 text-left"><i class="fas fa-star mr-2"></i>Review</th>
             <th class="py-4 px-6 text-left"><i class="fas fa-user-tie mr-2"></i>Handled By</th>
@@ -348,6 +349,10 @@
           <tr class="border-b border-gray-100 transition-colors duration-200 <%= rowColor %>">
             <td class="py-4 px-6 font-semibold text-gray-800"><%= order.name %></td>
             <td class="py-4 px-6 font-semibold text-gray-800"><%= order.phone %></td>
+            <td class="py-4 px-6 text-sm text-blue-600 font-medium">
+              <i class="fas fa-box-open mr-1"></i>
+              <%= order.productName || 'Not specified' %>
+            </td>
             <td class="py-4 px-6 text-sm text-gray-500"><%= new Date(order.createdAt).toLocaleDateString() %></td>
 
             <!-- Review -->

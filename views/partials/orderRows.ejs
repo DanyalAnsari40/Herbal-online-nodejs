@@ -7,6 +7,10 @@
 <tr class="border-b border-gray-100 transition-colors duration-200 <%= rowColor %>">
   <td class="py-4 px-6 font-semibold text-gray-800"><%= order.name %></td>
   <td class="py-4 px-6 font-semibold text-gray-800"><%= order.phone %></td>
+  <td class="py-4 px-6 text-sm text-blue-600 font-medium">
+    <i class="fas fa-box-open mr-1"></i>
+    <%= order.productName || 'Not specified' %>
+  </td>
   <td class="py-4 px-6 text-sm text-gray-500"><%= new Date(order.createdAt).toLocaleDateString() %></td>
 
   <!-- Review -->
