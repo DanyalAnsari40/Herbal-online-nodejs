@@ -239,19 +239,31 @@ const attendanceSchema = new mongoose.Schema({
 attendanceSchema.index({ user: 1, date: 1 }, { unique: true });
 const Attendance = mongoose.model('Attendance', attendanceSchema);
 
-// Hardcoded admin setup (run once or check if exists)
+// Admin setup with environment variables (run once or check if exists)
 const setupAdmin = async () => {
-  const adminEmail = 'rao@rao.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@company.com';
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  
+  if (!adminPassword) {
+    console.warn('⚠️  ADMIN_PASSWORD not set in environment variables. Skipping admin setup.');
+    return;
+  }
+  
+  if (adminPassword.length < 8) {
+    console.warn('⚠️  ADMIN_PASSWORD must be at least 8 characters long. Skipping admin setup.');
+    return;
+  }
+  
   const adminExists = await Employee.findOne({ email: adminEmail });
   if (!adminExists) {
-    const hashedPassword = await bcrypt.hash('123456', 10);
+    const hashedPassword = await bcrypt.hash(adminPassword, 12); // Increased salt rounds for better security
     await Employee.create({
       email: adminEmail,
       password: hashedPassword,
       role: 'admin',
       permissions: ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance']
     });
-    console.log('Admin user created');
+    console.log(`✅ Admin user created with email: ${adminEmail}`);
   }
 };
 // setupAdmin will be invoked after successful DB connection above
@@ -272,6 +284,129 @@ const hasPermission = (permission) => (req, res, next) => {
   res.status(403).render('error', { message: 'Access denied: Insufficient permissions' });
 };
 
+// Input validation middleware
+const validateInput = {
+  // Email validation
+  email: (value) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(value);
+  },
+  
+  // Phone validation (Pakistani format)
+  phone: (value) => {
+    const phoneRegex = /^(\+92|0)?[0-9]{10,11}$/;
+    return phoneRegex.test(value.replace(/[\s-]/g, ''));
+  },
+  
+  // Password strength validation
+  password: (value) => {
+    return value && value.length >= 8;
+  },
+  
+  // Sanitize string input
+  sanitizeString: (value) => {
+    if (typeof value !== 'string') return '';
+    return value.trim().replace(/[<>]/g, '');
+  },
+  
+  // Validate MongoDB ObjectId
+  objectId: (value) => {
+    return /^[0-9a-fA-F]{24}$/.test(value);
+  },
+  
+  // Validate numeric input
+  number: (value) => {
+    return !isNaN(value) && isFinite(value) && value >= 0;
+  }
+};
+
+// Validation middleware for employee creation/update
+const validateEmployee = (req, res, next) => {
+  const { email, password, role } = req.body;
+  
+  if (!email || !validateInput.email(email)) {
+    return res.status(400).json({ message: 'Valid email is required' });
+  }
+  
+  if (password && !validateInput.password(password)) {
+    return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+  }
+  
+  if (!role || !['admin', 'manager', 'staff'].includes(role)) {
+    return res.status(400).json({ message: 'Valid role is required' });
+  }
+  
+  // Sanitize inputs
+  req.body.email = validateInput.sanitizeString(email).toLowerCase();
+  if (req.body.displayName) {
+    req.body.displayName = validateInput.sanitizeString(req.body.displayName);
+  }
+  
+  next();
+};
+
+// Validation middleware for order creation
+const validateOrder = (req, res, next) => {
+  const { customerName, phone, productId, quantity } = req.body;
+  
+  if (!customerName || customerName.trim().length < 2) {
+    return res.status(400).json({ message: 'Customer name is required (minimum 2 characters)' });
+  }
+  
+  if (!phone || !validateInput.phone(phone)) {
+    return res.status(400).json({ message: 'Valid phone number is required' });
+  }
+  
+  if (productId && !validateInput.objectId(productId)) {
+    return res.status(400).json({ message: 'Invalid product ID' });
+  }
+  
+  if (quantity && (!validateInput.number(quantity) || quantity < 1)) {
+    return res.status(400).json({ message: 'Quantity must be a positive number' });
+  }
+  
+  // Sanitize inputs
+  req.body.customerName = validateInput.sanitizeString(customerName);
+  req.body.phone = validateInput.sanitizeString(phone);
+  if (req.body.email) {
+    req.body.email = validateInput.sanitizeString(req.body.email).toLowerCase();
+  }
+  if (req.body.address) {
+    req.body.address = validateInput.sanitizeString(req.body.address);
+  }
+  
+  next();
+};
+
+// Validation middleware for product creation/update
+const validateProduct = (req, res, next) => {
+  const { name, price, costPrice, stock } = req.body;
+  
+  if (!name || name.trim().length < 2) {
+    return res.status(400).json({ message: 'Product name is required (minimum 2 characters)' });
+  }
+  
+  if (!validateInput.number(price) || price <= 0) {
+    return res.status(400).json({ message: 'Valid price is required' });
+  }
+  
+  if (!validateInput.number(costPrice) || costPrice <= 0) {
+    return res.status(400).json({ message: 'Valid cost price is required' });
+  }
+  
+  if (!validateInput.number(stock) || stock < 0) {
+    return res.status(400).json({ message: 'Valid stock quantity is required' });
+  }
+  
+  // Sanitize inputs
+  req.body.name = validateInput.sanitizeString(name);
+  req.body.price = parseFloat(price);
+  req.body.costPrice = parseFloat(costPrice);
+  req.body.stock = parseInt(stock);
+  
+  next();
+};
+
 // Routes
 //!!!!!!!! added by danyal
 // admin/tracking
@@ -289,8 +424,22 @@ app.get('/login', (req, res) => {
   res.render('login', { message: null });
 });
 
-// Login Handler
-app.post('/login', ensureDbReady, async (req, res) => {
+// Login Handler with validation
+app.post('/login', ensureDbReady, (req, res, next) => {
+  const { email, password } = req.body;
+  
+  if (!email || !validateInput.email(email)) {
+    return res.render('login', { message: 'Valid email is required' });
+  }
+  
+  if (!password || password.length < 6) {
+    return res.render('login', { message: 'Password is required' });
+  }
+  
+  // Sanitize email
+  req.body.email = validateInput.sanitizeString(email).toLowerCase();
+  next();
+}, async (req, res) => {
   try {
     const { email, password } = req.body;
     const employee = await Employee.findOne({ email });
@@ -330,8 +479,23 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
   res.status(200).json({ ok: true });
 });
-// orders
-app.post('/order', async (req, res) => {
+// Landing page order submission with validation
+app.post('/order', (req, res, next) => {
+  const { name, phone } = req.body;
+  
+  if (!name || name.trim().length < 2) {
+    return res.render('index', { message: 'Name is required (minimum 2 characters)' });
+  }
+  
+  if (!phone || !validateInput.phone(phone)) {
+    return res.render('index', { message: 'Valid phone number is required' });
+  }
+  
+  // Sanitize inputs
+  req.body.name = validateInput.sanitizeString(name);
+  req.body.phone = validateInput.sanitizeString(phone);
+  next();
+}, async (req, res) => {
   try {
     const { name, phone } = req.body;
     if (!name || !phone) {
@@ -704,8 +868,8 @@ app.get('/admin/create-order', isAuthenticated, hasPermission('create-order'), a
     });
   }
 });
-// POST - Handle Order Creation
-app.post('/admin/create-order', isAuthenticated, hasPermission('create-order'), async (req, res) => {
+// POST - Handle Order Creation with validation
+app.post('/admin/create-order', isAuthenticated, hasPermission('create-order'), validateOrder, async (req, res) => {
   try {
     const {
       customerName, email, phone,
@@ -889,8 +1053,8 @@ app.get('/admin/employee-management', isAuthenticated, hasPermission('employee-m
 });
 
 
-// Add Employee
-app.post('/admin/employee-management', isAuthenticated, hasPermission('employee-management'), async (req, res) => {
+// Add Employee with validation
+app.post('/admin/employee-management', isAuthenticated, hasPermission('employee-management'), validateEmployee, async (req, res) => {
   try {
     const { email, password, role, permissions } = req.body;
 
@@ -943,8 +1107,8 @@ app.get('/admin/employees/edit/:id', isAuthenticated, hasPermission('employee-ma
     res.status(500).render('error', { message: 'Server error' });
   }
 });
-// Update Employee
-app.post('/admin/employees/edit/:id', isAuthenticated, hasPermission('employee-management'), async (req, res) => {
+// Update Employee with validation
+app.post('/admin/employees/edit/:id', isAuthenticated, hasPermission('employee-management'), validateEmployee, async (req, res) => {
   try {
     const { email, password, role } = req.body;
     let permissions = req.body.permissions;
@@ -1032,8 +1196,8 @@ app.get('/admin/product-management', isAuthenticated, hasPermission('product-man
     });
   }
 });
-// Route to add new product
-app.post('/admin/product-management', isAuthenticated, hasPermission('employee-management'), async (req, res) => {
+// Route to add new product with validation
+app.post('/admin/product-management', isAuthenticated, hasPermission('employee-management'), validateProduct, async (req, res) => {
   try {
     const { name, price, costPrice, stock } = req.body;
 
@@ -1067,8 +1231,8 @@ app.get('/admin/products/edit/:id', isAuthenticated, hasPermission('product-mana
 
   res.render('edit-product', { product, message: null, user: req.session.user });
 });
-// Handle edit submission
-app.post('/admin/products/edit/:id', isAuthenticated, hasPermission('product-management'), async (req, res) => {
+// Handle edit submission with validation
+app.post('/admin/products/edit/:id', isAuthenticated, hasPermission('product-management'), validateProduct, async (req, res) => {
   const { name, price, stock, costPrice } = req.body;
   try {
     await Product.findByIdAndUpdate(req.params.id, { name, price, stock, costPrice });
@@ -1446,7 +1610,10 @@ app.post('/api/postex/booking', isAuthenticated, async (req, res) => {
     delete postexData.productId;
     delete postexData.itemsCount;
     
-    const token = 'YzIxZGU5YjY0N2M0NDU1ZGE0ZDM5ZmVlOTA3ZWEwODc6NGI4OTRjNzcyNjRkNDA1NTk3ZDNjODQwNDhhYmQ1Mjg=';
+    const token = process.env.POSTEX_API_TOKEN;
+    if (!token) {
+      return res.status(500).json({ message: 'Missing POSTEX_API_TOKEN on server' });
+    }
     const response = await fetch('https://api.postex.pk/services/integration/api/order/v3/create-order', {
       method: 'POST',
       headers: {
