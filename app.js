@@ -1,4 +1,5 @@
 const express = require('express');
+const app = express();
 require('dotenv').config()
 // Ensure fetch exists on Node <18
 if (typeof fetch === 'undefined') {
@@ -10,18 +11,35 @@ const bcrypt = require('bcrypt');
 const session = require('express-session');
 const path = require('path');
 const MongoStore = require('connect-mongo');
+const multer = require('multer');
 // for Finance mangemnet
 const Finance = require('./models/Finance');
-const multer = require('multer');
 // Use memory storage on Vercel (serverless FS is read-only); disk storage locally
 const upload = multer(process.env.VERCEL ? { storage: multer.memoryStorage() } : { dest: 'public/uploads/' });
 const LandingOrder = require('./models/Order'); // your simple schema: name, phone, createdAt
 const { Parser } = require('json2csv');
 
-const app = express();
-// Middleware
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(express.static('public'));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+// Import Cloudinary configuration
+const { upload: cloudinaryUpload, deleteProfilePicture, getOptimizedUrl, getProfilePicUrl } = require('./config/cloudinary');
+
+// Middleware to add Cloudinary helper functions to all views
+app.use((req, res, next) => {
+  res.locals.getProfilePicUrl = (publicId, size = 'medium') => {
+    if (!publicId) return '/uploads/default-profile.svg';
+    return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/w_150,h_150,c_fill,g_face,q_auto,f_auto/${publicId}`;
+  };
+  
+  res.locals.getProfilePicUrlLarge = (publicId) => {
+    if (!publicId) return '/uploads/default-profile.svg';
+    return `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/w_300,h_300,c_fill,g_face,q_auto,f_auto/${publicId}`;
+  };
+  
+  next();
+});
 app.set('view engine', 'ejs');
 // Absolute paths for views/static for Vercel
 app.set('views', path.join(__dirname, 'views'));
@@ -689,6 +707,67 @@ app.get('/admin', isAuthenticated, async (req, res) => {
       currentRoute: 'admin',
       user: req.session.user
     });
+  }
+});
+
+
+// Profile Management Routes  
+app.post('/admin/profile', isAuthenticated, cloudinaryUpload.single('profilePic'), async (req, res) => {
+  try {
+    const { displayName } = req.body;
+    const userId = req.session.user._id || req.session.user.id;
+    
+    console.log('Profile update attempt for user:', userId);
+    console.log('Session user:', req.session.user);
+
+    // Find the user
+    const user = await Employee.findById(userId);
+    if (!user) {
+      console.log('User not found with ID:', userId);
+      return res.redirect('/admin?error=User not found');
+    }
+    
+    console.log('User found:', user.email);
+
+    // Update display name if provided
+    if (displayName && displayName.trim()) {
+      user.displayName = displayName.trim();
+    }
+
+    // Handle profile picture upload
+    if (req.file) {
+      console.log('File uploaded:', req.file);
+      console.log('Public ID:', req.file.public_id);
+      console.log('Filename:', req.file.filename);
+      
+      // Delete old profile picture from Cloudinary if it exists
+      if (user.profilePic) {
+        console.log('Deleting old profile pic:', user.profilePic);
+        await deleteProfilePicture(user.profilePic);
+      }
+      
+      // Save new profile picture URL (use filename if public_id is undefined)
+      user.profilePic = req.file.public_id || req.file.filename;
+      console.log('New profile pic set:', user.profilePic);
+    }
+
+    // Save user updates
+    await user.save();
+
+    // Update session with new user data
+    req.session.user.displayName = user.displayName;
+    req.session.user.profilePic = user.profilePic;
+    
+    // Save session explicitly
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+      }
+      res.redirect('/admin?success=Profile updated successfully');
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.redirect('/admin?error=Failed to update profile');
   }
 });
 

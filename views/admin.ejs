@@ -164,7 +164,7 @@
           <div class="flex justify-between items-center">
             <div class="flex items-center space-x-4">
               <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-white">
-                <img src="/uploads/<%= user.profilePic || 'default-profile.png' %>" alt="Profile"
+                <img src="<%= getProfilePicUrlLarge(user.profilePic) %>" alt="Profile"
                   class="w-full h-full object-cover">
               </div>
               <div>
@@ -245,7 +245,7 @@
     <div class="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
       <h2 class="text-2xl font-bold mb-4 text-gray-800">Profile</h2>
       <div class="flex items-center space-x-4 mb-4">
-        <img src="/uploads/<%= user.profilePic || 'default-profile.png' %>" alt="Profile"
+        <img src="<%= getProfilePicUrl(user.profilePic) %>" alt="Profile"
           class="w-16 h-16 rounded-full object-cover border">
         <div>
           <p class="font-semibold text-lg">
