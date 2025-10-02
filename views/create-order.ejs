@@ -1,115 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin - Create Order</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
+<%- include('partials/modern-styles', { pageTitle: 'Elite Create Order' }) %>
 
-<body class="bg-gradient-to-br from-slate-50 to-green-50 font-sans">
+<body class="bg-white font-inter min-h-screen">
   <div class="min-h-screen flex flex-col">
     <% if (user.role==='admin' ) { %>
       <div class="min-h-screen flex">
-        <!-- Sidebar -->
-        <aside id="sidebar"
-          class="w-64 transition-all duration-300 bg-gradient-to-b from-green-700 to-indigo-800 text-white flex flex-col p-6 space-y-6">
-          <div class="flex flex-col items-center space-y-3">
-            <div
-              class="profile-pic-container w-24 h-24 rounded-full overflow-hidden border-2 border-white transition-all duration-300">
-              <img src="/uploads/<%= user.profilePic || 'default-profile.png' %>" alt="Profile"
-                class="w-full h-full object-cover">
-            </div>
-            <div class="text-center sidebar-text transition-all duration-300">
-              <p class="text-lg font-semibold">
-                <%= user.displayName || 'Name not set' %>
-              </p>
-              <p class="text-sm text-green-100">
-                <%= user.email %>
-              </p>
-              <span class="mt-1 inline-block bg-white/20 rounded-full px-3 py-1 text-xs font-medium">
-                <%= user.role %>
-              </span>
-            </div>
-          </div>
-
-          <nav class="flex flex-col space-y-2">
-            <a href="/admin"
-              class="flex items-center px-4 py-2 rounded hover:bg-white/10 transition <%= currentRoute === 'admin' ? 'bg-white/20 border-l-4 border-white' : '' %>">
-              <i class="fas fa-home w-5 mr-3"></i> <span class="sidebar-text">Dashboard</span>
-            </a>
-            <% if (user.permissions.includes('employee-management')) { %>
-              <a href="/admin/employee-management"
-                class="flex items-center px-4 py-2 rounded hover:bg-white/10 transition <%= currentRoute === 'employee-management' ? 'bg-white/20 border-l-4 border-white' : '' %>">
-                <i class="fas fa-users w-5 mr-3"></i> <span class="sidebar-text">Employees Management</span>
-              </a>
-              <% } %>
-                <% if (user.permissions.includes('finance')) { %>
-                  <a href="/admin/finance"
-                    class="flex items-center px-4 py-2 rounded hover:bg-white/10 transition <%= currentRoute === 'finance' ? 'bg-white/20 border-l-4 border-white' : '' %>">
-                    <i class="fas fa-coins w-5 mr-3"></i> <span class="sidebar-text">Finance</span>
-                  </a>
-                  <% } %>
-          </nav>
-        </aside>
+        <%- include('partials/modern-sidebar') %>
 
 
         <div class="flex-1 flex flex-col">
-          <!-- Header with toggle -->
-          <header class="bg-gradient-to-r from-green-600 via-green-700 to-indigo-700 text-white shadow-lg">
-            <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-              <div class="flex items-center space-x-8">
-                <!-- Toggle Button -->
-                <button onclick="toggleSidebar()" class="text-white hover:text-green-200 text-2xl transition">
-                  <i class="fas fa-bars"></i>
-                </button>
-
-                <h1 class="text-2xl font-bold">Admin Dashboard</h1>
-                <nav class="flex space-x-4 items-center">
-                  <% if (user.permissions.includes('orders')) { %>
-                    <a href="/admin/orders"
-                      class="flex items-center space-x-2 px-3 py-1 rounded hover:bg-white/10 transition <%= currentRoute === 'orders' ? 'bg-white/20 font-semibold underline' : '' %>">
-                      <i class="fas fa-shopping-cart w-4"></i><span>Orders</span>
-                    </a>
-                    <% } %>
-                      <% if (user.permissions.includes('create-order')) { %>
-                        <a href="/admin/create-order"
-                          class="flex items-center space-x-2 px-3 py-1 rounded hover:bg-white/10 transition <%= currentRoute === 'create-order' ? 'bg-white/20 font-semibold underline' : '' %>">
-                          <i class="fas fa-plus-circle w-4"></i><span>Create Order</span>
-                        </a>
-                        <% } %>
-                          <% if (user.permissions.includes('track-product')) { %>
-                            <a href="/admin/tracking"
-                              class="flex items-center space-x-2 px-3 py-1 rounded hover:bg-white/10 transition <%= currentRoute === 'tracking' ? 'bg-white/20 font-semibold underline' : '' %>">
-                              <i class="fa-solid fa-truck w-4"></i><span>Tracking</span>
-                            </a>
-                            <% } %>
-                              <% if (user.permissions.includes('product-management')) { %>
-                                <a href="/admin/product-management"
-                                  class="flex items-center space-x-2 px-3 py-1 rounded hover:bg-white/10 transition <%= currentRoute === 'product-management' ? 'bg-white/20 font-semibold underline' : '' %>">
-                                  <i class="fas fa-boxes w-4"></i><span>Products</span>
-                                </a>
-                                <% } %>
-                                  <a href="/admin/attendence"
-                                    class="flex items-center space-x-2 px-3 py-1 rounded hover:bg-white/10 transition <%= currentRoute === 'attendence' ? 'bg-white/20 font-semibold underline' : '' %>">
-                                    <i class="fa-solid fa-clock w-4"></i><span>Attendance</span>
-                                  </a>
-                </nav>
-              </div>
-              <div class="flex items-center space-x-4">
-                <button onclick="document.getElementById('profileModal').classList.remove('hidden')"
-                  class="text-white hover:text-green-200 text-xl transition">
-                  <i class="fas fa-cog"></i>
-                </button>
-                <a href="/logout"
-                  class="flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all duration-200 backdrop-blur-sm">
-                  <i class="fas fa-sign-out-alt"></i><span>Logout</span>
-                </a>
-              </div>
-            </div>
-          </header>
+          <%- include('partials/modern-header', { pageTitle: 'Create Order' }) %>
           <% } else { %>
             <!-- Employee header with special style -->
             <header class="bg-gradient-to-r from-green-600 via-green-700 to-indigo-700 text-white shadow-lg">
@@ -210,11 +112,11 @@
             <% } %>
 
 
-              <!-- Main Content -->
-              <main class="container mx-auto px-6 py-8 flex-grow">
+              <!-- Modern Main Content -->
+              <main class="container mx-auto px-8 py-12 flex-grow">
                 <% if (message) { %>
                   <div
-                    class="mb-6 p-4 text-center rounded-xl shadow-sm border-l-4 <%= message.includes('successfully') ? 'bg-green-50 text-green-700 border-green-400' : 'bg-red-50 text-red-700 border-red-400' %>">
+                    class="mb-8 p-6 text-center glass rounded-2xl shadow-lg border-l-4 <%= message.includes('successfully') ? 'success-glow border-green-400' : 'error-glow border-red-400' %>">
                     <div class="flex items-center justify-center space-x-2">
                       <i
                         class="fas <%= message.includes('successfully') ? 'fa-check-circle' : 'fa-exclamation-circle' %>"></i>
@@ -225,31 +127,31 @@
                   </div>
                   <% } %>
 
-                    <!-- Create Order Form -->
-                    <section class="mb-8">
-                      <div class="mb-8">
-                        <h2 class="text-4xl font-bold text-gray-800 mb-2">Create New Order</h2>
-                        <p class="text-gray-600 text-lg">Add a new customer order with detailed information</p>
+                    <!-- Modern Create Order Form -->
+                    <section class="mb-12">
+                      <div class="mb-10 glass rounded-3xl p-8 shadow-2xl">
+                        <h2 class="text-4xl font-bold mb-4 gradient-text">✨ Create New Order</h2>
+                        <p class="text-lg font-medium" style="color: #14213D;">Add a new customer order with detailed information</p>
                         <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                           <button onclick="openTcsModal()"
-                            class="flex items-center justify-center px-6 py-6 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white hover:from-red-600 hover:to-rose-700 shadow-lg transform hover:scale-105 transition-all duration-200">
-                            <i class="fas fa-shipping-fast mr-3 text-2xl"></i>
-                            TCS
+                            class="group flex items-center justify-center px-8 py-8 rounded-2xl stats-card shadow-2xl card-hover">
+                            <i class="fas fa-shipping-fast mr-3 text-3xl group-hover:scale-110 transition-transform" style="color: #FCA311;"></i>
+                            <span class="text-xl font-bold" style="color: #14213D;">TCS</span>
                           </button>
                           <button onclick="openLeopardsModal()"
-                            class="flex items-center justify-center px-6 py-6 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg transform hover:scale-105 transition-all duration-200">
-                            <i class="fas fa-truck mr-3 text-2xl"></i>
-                            Leopards
+                            class="group flex items-center justify-center px-8 py-8 rounded-2xl stats-card shadow-2xl card-hover">
+                            <i class="fas fa-truck mr-3 text-3xl group-hover:scale-110 transition-transform" style="color: #FCA311;"></i>
+                            <span class="text-xl font-bold" style="color: #14213D;">Leopards</span>
                           </button>
                           <button onclick="openMnpModal()"
-                            class="flex items-center justify-center px-6 py-6 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-lg transform hover:scale-105 transition-all duration-200">
-                            <i class="fas fa-shipping-fast mr-3 text-2xl"></i>
-                            M&P
+                            class="group flex items-center justify-center px-8 py-8 rounded-2xl stats-card shadow-2xl card-hover">
+                            <i class="fas fa-shipping-fast mr-3 text-3xl group-hover:scale-110 transition-transform" style="color: #FCA311;"></i>
+                            <span class="text-xl font-bold" style="color: #14213D;">M&P</span>
                           </button>
                           <button onclick="openPostexModal()"
-                            class="flex items-center justify-center px-6 py-6 rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 text-white hover:from-purple-600 hover:to-pink-700 shadow-lg transform hover:scale-105 transition-all duration-200">
-                            <i class="fas fa-plane mr-3 text-2xl"></i>
-                            PostEx
+                            class="group flex items-center justify-center px-8 py-8 rounded-2xl stats-card shadow-2xl card-hover">
+                            <i class="fas fa-plane mr-3 text-3xl group-hover:scale-110 transition-transform" style="color: #FCA311;"></i>
+                            <span class="text-xl font-bold" style="color: #14213D;">PostEx</span>
                           </button>
                         </div>
                       </div>
@@ -257,31 +159,35 @@
 
 
 
-                      <!-- Order List -->
+                      <!-- Modern Order List -->
                       <section>
-                        <div class="mb-8">
-                          <h2 class="text-3xl font-bold text-gray-800 mb-2">Courier Results & Orders</h2>
-                          <p class="text-gray-600 text-lg">View courier data and orders from different services</p>
+                        <div class="mb-8 glass rounded-3xl p-8 shadow-2xl">
+                          <h2 class="text-3xl font-bold mb-2 gradient-text">📦 Courier Results & Orders</h2>
+                          <p class="text-lg font-medium" style="color: #14213D;">View courier data and orders from different services</p>
                         </div>
 
-                        <!-- Courier Tabs -->
-                        <div class="mb-8">
-                          <div class="border-b border-gray-200">
+                        <!-- Modern Courier Tabs -->
+                        <div class="mb-8 glass rounded-2xl p-6 shadow-lg">
+                          <div class="border-b" style="border-color: #FCA311;">
                             <nav class="-mb-px flex space-x-8">
                               <button onclick="showTab('tcs')" id="tcs-tab"
-                                class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 active:border-green-500 active:text-green-600">
+                                class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm rounded-t-lg transition-all duration-300 hover:bg-white/10"
+                                style="color: #14213D;">
                                 <i class="fas fa-shipping-fast mr-2"></i>TCS
                               </button>
                               <button onclick="showTab('leopards')" id="leopards-tab"
-                                class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 active:border-green-500 active:text-green-600">
+                                class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm rounded-t-lg transition-all duration-300 hover:bg-white/10"
+                                style="color: #14213D;">
                                 <i class="fas fa-truck mr-2"></i>Leopards
                               </button>
                               <button onclick="showTab('mp')" id="mp-tab"
-                                class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 active:border-green-500 active:text-green-600">
+                                class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm rounded-t-lg transition-all duration-300 hover:bg-white/10"
+                                style="color: #14213D;">
                                 <i class="fas fa-shipping-fast mr-2"></i>M&P
                               </button>
                               <button onclick="showTab('postex')" id="postex-tab"
-                                class="tab-button py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 active:border-green-500 active:text-green-600">
+                                class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm rounded-t-lg transition-all duration-300 hover:bg-white/10"
+                                style="color: #14213D;">
                                 <i class="fas fa-plane mr-2"></i>PostEx
                               </button>
                             </nav>
@@ -3211,6 +3117,13 @@
           document.addEventListener('DOMContentLoaded', function () {
             showTab('tcs');
           });
+
+          // Sidebar toggle functionality
+          function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('w-72');
+            sidebar.classList.toggle('w-20');
+          }
         </script>
 
 </html>

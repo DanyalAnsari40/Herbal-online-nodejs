@@ -1,0 +1,126 @@
+<!-- Modern Professional Sidebar -->
+<aside id="sidebar"
+  class="w-72 transition-all duration-500 glass-dark backdrop-blur-xl text-white flex flex-col p-8 space-y-8 border-r shadow-2xl"
+  style="background: linear-gradient(135deg, #14213D 0%, #0F1729 100%); border-color: #FCA311;">
+  
+  <!-- Enhanced Profile Section -->
+  <div class="flex flex-col items-center space-y-4 glass rounded-2xl p-6">
+    <div class="relative floating">
+      <div class="w-28 h-28 rounded-full overflow-hidden border-4 p-1" style="border-color: #FCA311; background: linear-gradient(135deg, #FCA311 0%, #FFB84D 100%);">
+        <img src="/uploads/<%= user.profilePic || 'default-profile.png' %>" alt="Profile"
+          class="w-full h-full object-cover rounded-full bg-white">
+      </div>
+      <div class="absolute -bottom-2 -right-2 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center" style="background-color: #FCA311;">
+        <i class="fas fa-crown text-white text-xs"></i>
+      </div>
+    </div>
+    <div class="text-center space-y-2">
+      <h3 class="text-xl font-bold text-white">
+        <%= user.displayName || 'Elite Admin' %>
+      </h3>
+      <p class="text-sm font-medium" style="color: #E5E5E5;">
+        <%= user.email %>
+      </p>
+      <span class="inline-block rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider shadow-lg text-white" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+        🚀 <%= user.role %>
+      </span>
+    </div>
+  </div>
+
+  <!-- Enhanced Navigation -->
+  <nav class="flex flex-col space-y-3">
+    <div class="text-xs font-semibold uppercase tracking-wider mb-2 px-4" style="color: #FCA311;">
+      🎯 Main Menu
+    </div>
+    
+    <a href="/admin"
+      class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'admin' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
+      <% if (currentRoute === 'admin') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>
+      <div class="flex items-center justify-center w-10 h-10 rounded-lg mr-4 group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+        <i class="fas fa-home text-white"></i>
+      </div>
+      <span class="sidebar-text font-medium">Dashboard</span>
+      <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
+    </a>
+    
+    <a href="/admin/orders"
+      class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'orders' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
+      <% if (currentRoute === 'orders') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>
+      <div class="flex items-center justify-center w-10 h-10 rounded-lg mr-4 group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+        <i class="fas fa-shopping-cart text-white"></i>
+      </div>
+      <span class="sidebar-text font-medium">Orders</span>
+      <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
+    </a>
+    
+    <a href="/admin/attendence"
+      class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'attendence' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
+      <% if (currentRoute === 'attendence') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>
+      <div class="flex items-center justify-center w-10 h-10 rounded-lg mr-4 group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+        <i class="fa-solid fa-clock text-white"></i>
+      </div>
+      <span class="sidebar-text font-medium">Attendance</span>
+      <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
+    </a>
+    
+    <% if (user.permissions.includes('create-order')) { %>
+      <a href="/admin/create-order"
+        class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'create-order' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
+        <% if (currentRoute === 'create-order') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>
+        <div class="flex items-center justify-center w-10 h-10 rounded-lg mr-4 group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+          <i class="fas fa-plus-circle text-white"></i>
+        </div>
+        <span class="sidebar-text font-medium">Create Order</span>
+        <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
+      </a>
+    <% } %>
+    
+    <% if (user.permissions.includes('employee-management')) { %>
+      <a href="/admin/employee-management"
+        class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'employee-management' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
+        <% if (currentRoute === 'employee-management') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>
+        <div class="flex items-center justify-center w-10 h-10 rounded-lg mr-4 group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+          <i class="fas fa-users text-white"></i>
+        </div>
+        <span class="sidebar-text font-medium">Employees</span>
+        <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
+      </a>
+    <% } %>
+    
+    <% if (user.permissions.includes('product-management')) { %>
+      <a href="/admin/product-management"
+        class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'product-management' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
+        <% if (currentRoute === 'product-management') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>
+        <div class="flex items-center justify-center w-10 h-10 rounded-lg mr-4 group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+          <i class="fas fa-boxes text-white"></i>
+        </div>
+        <span class="sidebar-text font-medium">Products</span>
+        <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
+      </a>
+    <% } %>
+    
+    <% if (user.permissions.includes('track-product')) { %>
+      <a href="/admin/tracking"
+        class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'tracking' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
+        <% if (currentRoute === 'tracking') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>
+        <div class="flex items-center justify-center w-10 h-10 rounded-lg mr-4 group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+          <i class="fa-solid fa-truck text-white"></i>
+        </div>
+        <span class="sidebar-text font-medium">Tracking</span>
+        <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
+      </a>
+    <% } %>
+    
+    <% if (user.permissions.includes('finance')) { %>
+      <a href="/admin/finance"
+        class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'finance' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
+        <% if (currentRoute === 'finance') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>
+        <div class="flex items-center justify-center w-10 h-10 rounded-lg mr-4 group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+          <i class="fas fa-coins text-white"></i>
+        </div>
+        <span class="sidebar-text font-medium">Finance</span>
+        <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
+      </a>
+    <% } %>
+  </nav>
+</aside>

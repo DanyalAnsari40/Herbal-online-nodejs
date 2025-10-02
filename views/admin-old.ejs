@@ -1,0 +1,595 @@
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title> elite Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    
+    .stats-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: all 0.3s ease;
+    }
+    
+    .stats-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      border-color: rgba(255,255,255,0.3);
+    }
+    
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .floating {
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    .sidebar-item {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .sidebar-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    .sidebar-item:hover::before {
+      left: 100%;
+    }
+  </style>
+</head>
+
+<body class="bg-white font-inter">
+
+  <% if (user.role==='admin' ) { %>
+    <div class="min-h-screen flex">
+      <%- include('partials/modern-sidebar') %>
+
+      <div class="flex-1 flex flex-col">
+        <%- include('partials/modern-header', { pageTitle: 'Dashboard' }) %>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-8 overflow-y-auto">
+          <!-- Dashboard Statistics -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Orders Card -->
+            <div class="rounded-2xl p-6 card-hover shadow-lg border" style="background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); border-color: #E5E7EB;">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-blue-100">Total Orders</p>
+                  <p class="text-3xl font-bold text-white"><%= orderCount %></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-white/20">
+                  <i class="fas fa-shopping-cart text-white"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pending Orders Card -->
+            <div class="rounded-2xl p-6 card-hover shadow-lg border" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); border-color: #E5E7EB;">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-orange-100">Pending Orders</p>
+                  <p class="text-3xl font-bold text-white"><%= pendingOrderCount %></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-white/20">
+                  <i class="fas fa-clock text-white"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Created Orders Card -->
+            <div class="rounded-2xl p-6 card-hover shadow-lg border" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #E5E7EB;">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-green-100">Created Orders</p>
+                  <p class="text-3xl font-bold text-white"><%= createOrderCount %></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-white/20">
+                  <i class="fas fa-plus-circle text-white"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dispatched Orders Card -->
+            <div class="rounded-2xl p-6 card-hover shadow-lg border" style="background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); border-color: #E5E7EB;">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-purple-100">Dispatched</p>
+                  <p class="text-3xl font-bold text-white"><%= totalDispatchedOrders %></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-white/20">
+                  <i class="fas fa-truck text-white"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Financial Overview -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Revenue Card -->
+            <div class="rounded-2xl p-6 card-hover shadow-lg border" style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); border-color: #E5E7EB;">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-green-100">Total Revenue</p>
+                  <p class="text-2xl font-bold text-white">Rs. <%= totalRevenue.toLocaleString() %></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-white/20">
+                  <i class="fas fa-arrow-up text-white"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cost Card -->
+            <div class="rounded-2xl p-6 card-hover shadow-lg border" style="background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); border-color: #E5E7EB;">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-red-100">Total Cost</p>
+                  <p class="text-2xl font-bold text-white">Rs. <%= totalCost.toLocaleString() %></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-white/20">
+                  <i class="fas fa-arrow-down text-white"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Profit Card -->
+            <div class="rounded-2xl p-6 card-hover shadow-lg border" style="background: linear-gradient(135deg, #14213D 0%, #1E2A4A 100%); border-color: #E5E7EB;">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-gray-200">Net Profit</p>
+                  <p class="text-2xl font-bold text-white">Rs. <%= profit.toLocaleString() %></p>
+                </div>
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+                  <i class="fas fa-chart-line text-white"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Stats -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Employees Card -->
+            <div class="rounded-2xl p-6 card-hover shadow-lg border" style="background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%); border-color: #E5E7EB;">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">Team Overview</h3>
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-white/20">
+                  <i class="fas fa-users text-white"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white mb-2"><%= employeeCount %></p>
+              <p class="text-sm text-indigo-100">Total Employees</p>
+            </div>
+
+            <!-- Products Card -->
+            <div class="rounded-2xl p-6 card-hover shadow-lg border" style="background: linear-gradient(135deg, #EC4899 0%, #DB2777 100%); border-color: #E5E7EB;">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">Inventory</h3>
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-white/20">
+                  <i class="fas fa-boxes text-white"></i>
+                </div>
+              </div>
+              <p class="text-2xl font-bold text-white mb-2"><%= products.length %></p>
+              <p class="text-sm text-pink-100">Products Available</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  <% } else { %>
+          <!-- Employee header with special style -->
+          <header class="bg-gradient-to-r from-green-600 via-green-700 to-indigo-700 text-white shadow-lg">
+            <div class="container mx-auto px-6 py-4">
+              <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                  <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-white">
+                    <img src="/uploads/<%= user.profilePic || 'default-profile.png' %>" alt="Profile"
+                      class="w-full h-full object-cover">
+                  </div>
+                  <div>
+                    <h1
+                      class="text-3xl font-bold bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent">
+                      Dashboard</h1>
+                    <p class="text-green-100 text-sm flex items-center mt-1">
+                      <i class="fas fa-user-circle mr-2"></i>
+                      Welcome, <%= user.email %>
+                        <span class="ml-2 px-2 py-1 bg-white/20 rounded-full text-xs font-medium">
+                          <%= user.role %>
+                        </span>
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                  <button onclick="document.getElementById('profileModal').classList.remove('hidden')"
+                    class="text-white hover:text-green-200 text-xl transition">
+                    <i class="fas fa-cog"></i>
+                  </button>
+                  <a href="/logout"
+                    class="flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all duration-200 backdrop-blur-sm">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                  </a>
+                </div>
+
+              </div>
+
+              <!-- Navigation -->
+              <nav class="mt-6 flex space-x-1">
+                <a href="/admin"
+                  class="<% if (currentRoute === 'admin') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
+                  <i class="fas fa-home"></i>
+                  <span>Dashboard</span>
+                </a>
+
+                <% if (user.role==='admin' || user.permissions.includes('orders')) { %>
+                  <a href="/admin/orders"
+                    class="<% if (currentRoute === 'orders') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Orders</span>
+                  </a>
+                  <% } %>
+
+                    <a href="/admin/attendence"
+                      class="<% if (currentRoute === 'attendence') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
+                      <i class="fa-solid fa-clock"></i>
+                      <span>Attendance</span>
+                    </a>
+
+                    <% if (user.role==='admin' || user.permissions.includes('create-order')) { %>
+                      <a href="/admin/create-order"
+                        class="<% if (currentRoute === 'create-order') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Create Order</span>
+                      </a>
+                      <% } %>
+
+                        <% if (user.role==='admin' || user.permissions.includes('employee-management')) { %>
+                          <a href="/admin/employee-management"
+                            class="<% if (currentRoute === 'employee-management') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
+                            <i class="fas fa-users"></i>
+                            <span>Employee Management</span>
+                          </a>
+                          <% } %>
+
+                            <% if (user.role==='admin' || user.permissions.includes('track-product')) { %>
+                              <a href="/admin/tracking"
+                                class="<% if (currentRoute === 'tracking') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
+                                <i class="fa-solid fa-truck"></i>
+                                <span>Track Product</span>
+                              </a>
+                              <% } %>
+
+                                <% if (user.role==='admin' || user.permissions.includes('product-management')) { %>
+                                  <a href="/admin/product-management"
+                                    class="<% if (currentRoute === 'product-management') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
+                                    <i class="fas fa-boxes"></i>
+                                    <span>Product Management</span>
+                                  </a>
+                                  <% } %>
+                                    <% if (user.role==='admin' || user.permissions.includes('finance')) { %>
+                                      <a href="/admin/finance"
+                                        class="<%= currentRoute === 'finance' ? 'bg-white/20 text-white border-b-2 border-white' : 'text-green-100 hover:text-white hover:bg-white/10' %> px-4 py-2 rounded-lg flex items-center space-x-2">
+                                        <i class="fas fa-coins"></i>
+                                        <span>Finance</span>
+                                      </a>
+                                      <% } %>
+
+              </nav>
+
+            </div>
+          </header>
+
+          <% } %>
+
+
+            <!-- Profile Modal -->
+            <div id="profileModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div class="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Profile</h2>
+                <div class="flex items-center space-x-4 mb-4">
+                  <img src="/uploads/<%= user.profilePic || 'default-profile.png' %>" alt="Profile"
+                    class="w-16 h-16 rounded-full object-cover border">
+                  <div>
+                    <p class="font-semibold text-lg">
+                      <%= user.displayName %>
+                    </p>
+                    <p class="text-gray-600 text-sm">
+                      <%= user.email %>
+                    </p>
+                  </div>
+                </div>
+                <div class="flex justify-end space-x-2">
+                  <button
+                    onclick="document.getElementById('editProfileModal').classList.remove('hidden'); document.getElementById('profileModal').classList.add('hidden');"
+                    class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">Edit
+                    Profile</button>
+                  <button onclick="document.getElementById('profileModal').classList.add('hidden')"
+                    class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 transition">Close</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Edit Profile Modal -->
+            <div id="editProfileModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div class="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
+                <h2 class="text-2xl font-bold mb-4 text-gray-800">Edit Profile</h2>
+                <form method="POST" action="/admin/profile" enctype="multipart/form-data">
+                  <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-1">Name</label>
+                    <input type="text" name="displayName" value="<%= user.displayName || '' %>"
+                      class="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+                  </div>
+                  <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-1">Profile Picture</label>
+                    <input type="file" name="profilePic"
+                      class="w-full border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-500">
+                  </div>
+                  <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="document.getElementById('editProfileModal').classList.add('hidden')"
+                      class="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 transition">Cancel</button>
+                    <button type="submit"
+                      class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">Save</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+<main class="container mx-auto px-6 py-8 flex-grow">
+  <% if (message) { %>
+    <div class="mb-6 p-4 text-center rounded-xl shadow-sm border-l-4 
+      <%= message.includes('successfully') ? 'bg-green-50 text-green-700 border-green-400' : 'bg-red-50 text-red-700 border-red-400' %>">
+      <div class="flex items-center justify-center space-x-2">
+        <i class="fas <%= message.includes('successfully') ? 'fa-check-circle' : 'fa-exclamation-circle' %>"></i>
+        <span class="font-medium"><%= message %></span>
+      </div>
+    </div>
+  <% } %>
+
+  <% if (user.role === 'admin') { %>
+    <!-- Admin Dashboard -->
+    <section>
+      <div class="mb-8">
+        <h2 class="text-4xl font-bold text-gray-800 mb-2">Welcome to the Admin Dashboard</h2>
+        <p class="text-gray-600 text-lg">Manage your business operations efficiently</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-12">
+        <div class="p-6 rounded-2xl shadow-lg border bg-gradient-to-br from-green-100 to-green-50 text-center">
+          <div class="flex justify-center mb-3">
+            <div class="bg-green-500 p-3 rounded-full text-white">
+              <i class="fas fa-clipboard-list text-xl"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-green-800 mb-1"><%= orderCount %></p>
+          <p class="text-sm text-green-700 font-semibold">Total Orders (Inquiries)</p>
+        </div>
+
+        <div class="p-6 rounded-2xl shadow-lg border bg-gradient-to-br from-yellow-100 to-yellow-50 text-center">
+          <div class="flex justify-center mb-3">
+            <div class="bg-yellow-500 p-3 rounded-full text-white">
+              <i class="fas fa-hourglass-half text-xl"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-yellow-800 mb-1"><%= pendingOrderCount %></p>
+          <p class="text-sm text-yellow-700 font-semibold">Pending Calls</p>
+        </div>
+
+        <div class="p-6 rounded-2xl shadow-lg border bg-gradient-to-br from-blue-100 to-blue-50 text-center">
+          <div class="flex justify-center mb-3">
+            <div class="bg-blue-500 p-3 rounded-full text-white">
+              <i class="fas fa-box text-xl"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-blue-800 mb-1"><%= createOrderCount %></p>
+          <p class="text-sm text-blue-700 font-semibold">Orders Created</p>
+        </div>
+
+        <div class="p-6 rounded-2xl shadow-lg border bg-gradient-to-br from-indigo-100 to-indigo-50 text-center">
+          <div class="flex justify-center mb-3">
+            <div class="bg-indigo-500 p-3 rounded-full text-white">
+              <i class="fas fa-shipping-fast text-xl"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-indigo-800 mb-1"><%= totalDispatchedOrders %></p>
+          <p class="text-sm text-indigo-700 font-semibold">Dispatched Orders</p>
+        </div>
+
+        <div class="p-6 rounded-2xl shadow-lg border bg-gradient-to-br from-purple-100 to-purple-50 text-center">
+          <div class="flex justify-center mb-3">
+            <div class="bg-purple-500 p-3 rounded-full text-white">
+              <i class="fas fa-users text-xl"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-purple-800 mb-1"><%= employeeCount %></p>
+          <p class="text-sm text-purple-700 font-semibold">Employees</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div class="p-6 rounded-2xl shadow-lg border bg-gradient-to-br from-green-100 to-green-50 text-center">
+          <div class="flex justify-center mb-3">
+            <div class="bg-green-500 p-3 rounded-full text-white">
+              <i class="fas fa-coins text-xl"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-green-800 mb-1">Rs. <%= totalRevenue.toFixed(2) %></p>
+          <p class="text-sm text-green-700 font-semibold">Total Sales</p>
+        </div>
+
+        <div class="p-6 rounded-2xl shadow-lg border bg-gradient-to-br from-red-100 to-red-50 text-center">
+          <div class="flex justify-center mb-3">
+            <div class="bg-red-500 p-3 rounded-full text-white">
+              <i class="fas fa-hand-holding-usd text-xl"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-red-800 mb-1">Rs. <%= totalCost.toFixed(2) %></p>
+          <p class="text-sm text-red-700 font-semibold">Total Cost</p>
+        </div>
+
+        <div class="p-6 rounded-2xl shadow-lg border bg-gradient-to-br from-yellow-100 to-yellow-50 text-center">
+          <div class="flex justify-center mb-3">
+            <div class="bg-yellow-500 p-3 rounded-full text-white">
+              <i class="fas fa-chart-line text-xl"></i>
+            </div>
+          </div>
+          <p class="text-3xl font-extrabold text-yellow-800 mb-1">Rs. <%= profit.toFixed(2) %></p>
+          <p class="text-sm text-yellow-700 font-semibold">Total Profit</p>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 overflow-x-auto">
+        <h3 class="text-xl font-bold text-gray-700 mb-4 flex items-center">
+          <i class="fas fa-box-open mr-3 text-green-500"></i>Current Stock Overview
+        </h3>
+        <table class="min-w-full text-sm">
+          <thead class="bg-gradient-to-r from-gray-50 to-gray-100 text-gray-600 uppercase font-semibold">
+            <tr>
+              <th class="py-4 px-6 text-left">Product Name</th>
+              <th class="py-4 px-6 text-left">Stock Quantity</th>
+            </tr>
+          </thead>
+          <tbody class="text-gray-700">
+            <% products.forEach((product, i) => { %>
+              <tr class="border-b border-gray-100 hover:bg-green-50 <%= i % 2 === 0 ? 'bg-white' : 'bg-gray-50' %>">
+                <td class="py-4 px-6"><%= product.name %></td>
+                <td class="py-4 px-6 font-semibold text-green-700"><%= product.stock %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  <% } else { %>
+<section class="flex flex-col items-center justify-center min-h-[54.5vh]">
+  <div class="mb-5 text-center">
+    <h2 class="text-4xl font-bold text-gray-800 mb-2">Welcome</h2>
+    <p class="text-gray-600 text-lg">Here’s your personal activity summary</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 w-auto justify-center">
+    <div class="p-8 rounded-3xl shadow-xl border bg-gradient-to-br from-blue-100 to-blue-50 text-center hover:scale-105 transition-transform duration-300">
+      <div class="flex justify-center mb-4">
+        <div class="bg-blue-500 p-4 rounded-full text-white">
+          <i class="fas fa-box text-2xl"></i>
+        </div>
+      </div>
+      <p class="text-4xl font-extrabold text-blue-800 mb-2"><%= createOrderCount %></p>
+      <p class="text-md text-blue-700 font-semibold">Orders Created By You</p>
+    </div>
+
+    <div class="p-8 rounded-3xl shadow-xl border bg-gradient-to-br from-indigo-100 to-indigo-50 text-center hover:scale-105 transition-transform duration-300">
+      <div class="flex justify-center mb-4">
+        <div class="bg-indigo-500 p-4 rounded-full text-white">
+          <i class="fas fa-shipping-fast text-2xl"></i>
+        </div>
+      </div>
+      <p class="text-4xl font-extrabold text-indigo-800 mb-2"><%= totalDispatchedOrders %></p>
+      <p class="text-md text-indigo-700 font-semibold">Orders You Dispatched</p>
+    </div>
+  </div>
+</section>
+
+
+  <% } %>
+</main>
+
+
+
+            <!-- Footer -->
+            <footer class="bg-gray-900 text-gray-300 py-6 mt-12">
+              <div class="container mx-auto px-6 text-center">
+                <div class="flex items-center justify-center space-x-4 mb-2">
+                  <i class="fas fa-shield-alt text-green-400"></i>
+                  <span class="font-semibold text-white">Admin Panel</span>
+                  <i class="fas fa-shield-alt text-green-400"></i>
+                </div>
+                <p class="text-sm">© 2025 Admin Panel. All rights reserved. | Secure • Reliable • Efficient</p>
+              </div>
+            </footer>
+      </div>
+    </div>
+
+    <script>
+      function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const texts = sidebar.querySelectorAll('.sidebar-text');
+        const profilePic = sidebar.querySelector('.profile-pic-container');
+
+        sidebar.classList.toggle('w-64');
+        sidebar.classList.toggle('w-20');
+
+        texts.forEach(el => el.classList.toggle('hidden'));
+
+        profilePic.classList.toggle('w-24');
+        profilePic.classList.toggle('h-24');
+        profilePic.classList.toggle('w-12');
+        profilePic.classList.toggle('h-12');
+
+        // also adjust p-6 vs p-2 padding on sidebar
+        sidebar.classList.toggle('p-6');
+        sidebar.classList.toggle('p-2');
+      }
+    </script>
+
+</body>
+
+</html>

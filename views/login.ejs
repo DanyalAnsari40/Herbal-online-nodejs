@@ -1,26 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
-<body class="bg-gradient-to-br from-slate-50 to-blue-50 font-sans">
-  <div class="min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md">
-      <!-- Logo/Brand Section -->
-      <div class="text-center mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl mb-4 shadow-lg">
-          <i class="fas fa-shield-alt text-white text-2xl"></i>
-        </div>
         <h1 class="text-3xl font-bold text-gray-800 mb-2">Admin Panel</h1>
         <p class="text-gray-600">Sign in to your account</p>
       </div>
 
-      <!-- Login Form -->
-      <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
+      <!-- Modern Login Form -->
+      <div class="glass p-10 rounded-3xl shadow-2xl border border-white/20 card-hover">
         <h2 class="text-2xl font-semibold mb-6 text-center text-gray-800">Welcome Back</h2>
         
         <% if (message) { %>
@@ -41,7 +26,7 @@
               type="email" 
               id="email" 
               name="email" 
-              class="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white" 
+              class="w-full p-4 modern-input rounded-xl focus:ring-2 focus:ring-cyan-400 transition-all duration-300 text-white placeholder-gray-300" 
               placeholder="Enter your email"
               required
             >
@@ -55,7 +40,7 @@
               type="password" 
               id="password" 
               name="password" 
-              class="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white" 
+              class="w-full p-4 modern-input rounded-xl focus:ring-2 focus:ring-cyan-400 transition-all duration-300 text-white placeholder-gray-300" 
               placeholder="Enter your password"
               required
             >
