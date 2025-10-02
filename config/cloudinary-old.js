@@ -42,8 +42,6 @@ const upload = multer({
       cb(new Error('Only image files are allowed!'), false);
     }
   },
-});
-
 // Helper function to delete old profile picture from Cloudinary
 const deleteProfilePicture = async (publicId) => {
   try {
