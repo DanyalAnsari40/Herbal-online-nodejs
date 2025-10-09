@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">Admin Panel</h1>
-        <p class="text-gray-600">Sign in to your account</p>
-      </div>
-
+ <%- include('partials/modern-styles', { pageTitle: 'Login', extraCss: ['/css/style.css'] }) %>
+ <body class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+   <div class="min-h-screen flex items-center justify-center px-4">
+    <div class="w-full max-w-md lg:max-w-xl">
       <!-- Modern Login Form -->
-      <div class="glass p-10 rounded-3xl shadow-2xl border border-white/20 card-hover">
-        <h2 class="text-2xl font-semibold mb-6 text-center text-gray-800">Welcome Back</h2>
+      <div class="glass p-10 lg:p-12 rounded-3xl shadow-2xl border border-white/20 card-hover">
+        <h2 class="text-2xl lg:text-3xl font-semibold mb-6 text-center text-gray-800">Welcome Back</h2>
         
         <% if (message) { %>
           <div class="mb-6 p-4 text-center rounded-xl shadow-sm border-l-4 bg-red-50 text-red-700 border-red-400">
@@ -26,7 +26,7 @@
               type="email" 
               id="email" 
               name="email" 
-              class="w-full p-4 modern-input rounded-xl focus:ring-2 focus:ring-cyan-400 transition-all duration-300 text-white placeholder-gray-300" 
+              class="w-full p-4 lg:p-5 modern-input rounded-xl focus:ring-2 focus:ring-cyan-400 transition-all duration-300 text-white placeholder-gray-300" 
               placeholder="Enter your email"
               required
             >
@@ -40,7 +40,7 @@
               type="password" 
               id="password" 
               name="password" 
-              class="w-full p-4 modern-input rounded-xl focus:ring-2 focus:ring-cyan-400 transition-all duration-300 text-white placeholder-gray-300" 
+              class="w-full p-4 lg:p-5 modern-input rounded-xl focus:ring-2 focus:ring-cyan-400 transition-all duration-300 text-white placeholder-gray-300" 
               placeholder="Enter your password"
               required
             >
@@ -48,7 +48,7 @@
           
           <button 
             type="submit" 
-            class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 lg:p-5 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             <i class="fas fa-sign-in-alt mr-2"></i>
             Sign In
@@ -56,21 +56,9 @@
         </form>
 
         <!-- Additional Info -->
-        <div class="mt-6 text-center">
-          <p class="text-sm text-gray-500">
-            <i class="fas fa-info-circle mr-1"></i>
-            Default admin: rao@rao.com / 123456
-          </p>
-        </div>
+       
       </div>
 
-      <!-- Footer -->
-      <div class="text-center mt-8">
-        <p class="text-sm text-gray-500">
-          <i class="fas fa-shield-alt mr-1 text-blue-500"></i>
-          Secure • Reliable • Efficient
-        </p>
-      </div>
     </div>
   </div>
 </body>
