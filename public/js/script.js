@@ -1,6 +1,7 @@
 // // import trackLoc from './api/track_product.json' assert { type: "json" };
 // // No import if using fetch (modules not supported by all browsers with import assert)
-// const trackBtn = document.querySelector('.btn-track');
+// // Select a non-modal Track button (exclude the modal submit to avoid double-handling)
+const trackBtn = document.querySelector('.btn-track:not(#trackIdSubmit)');
 // // const usernameInput = document.querySelector('#username');
 // // const passwordInput = document.querySelector('#password');
 // const p_id_Input = document.querySelector('#p_id');
@@ -209,7 +210,7 @@ function escapeHtml(val) {
 //   });
 // });
 
-const trackBtn = document.querySelector('.btn-track');
+// use the trackBtn declared at top ('.btn-track:not(#trackIdSubmit)')
 const p_id_Input = document.querySelector('#p_id'); // may be absent when using modal
 const modalOverlay = document.querySelector('#modalOverlay');
 const modalContent = document.querySelector('#modalContent');
@@ -236,9 +237,14 @@ if (trackBtn) {
 
 function runTracking(pIdOverride) {
   const selected_Service = (selectedCarrier || '').trim();
-  const p_id = (pIdOverride || (p_id_Input ? p_id_Input.value : '')).trim();
+  let p_id = (pIdOverride || (p_id_Input ? p_id_Input.value : '')).trim();
+  if (!p_id) {
+    const field = document.querySelector('#trackIdField');
+    p_id = (field ? field.value : '').trim();
+  }
 
   if (!selected_Service || !p_id) {
+    console.warn('[TRACK] Missing input', { selected_Service, p_id_length: (p_id||'').length });
     alert("Please select courier and enter tracking ID.");
     return;
   }
@@ -253,11 +259,19 @@ function runTracking(pIdOverride) {
     fetch('/api/track/leopards', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ track_numbers: p_id })
+      body: JSON.stringify({ track_numbers: p_id }),
+      credentials: 'same-origin'
     })
-      .then(r => r.json())
-      .then(data => {
-        if (!data || data.status !== 1) {
+      .then(async (r) => {
+        const ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          throw new Error('Not JSON');
+        }
+        const data = await r.json();
+        return { ok: r.ok, data };
+      })
+      .then(({ ok, data }) => {
+        if (!ok || !data || data.status !== 1) {
           const msg = data && (data.message || data.error) ? (data.message || data.error) : 'Unable to fetch tracking info';
           modalContent.innerHTML = `<div class="p-4 text-red-600">${msg}</div>`;
           modalOverlay.classList.add('active');
@@ -270,7 +284,7 @@ function runTracking(pIdOverride) {
         document.body.style.overflow = 'hidden';
       })
       .catch(err => {
-        modalContent.innerHTML = `<div class="p-4 text-red-600">Request failed</div>`;
+        modalContent.innerHTML = `<div class="p-4 text-red-600">Request failed. Please ensure you are logged in and try again.</div>`;
         modalOverlay.classList.add('active');
         document.body.style.overflow = 'hidden';
       });
@@ -380,7 +394,10 @@ if (trackIdModal) {
 
 if (trackIdSubmit) {
   trackIdSubmit.addEventListener('click', () => {
-    const value = (trackIdField ? trackIdField.value : '').trim();
+    // Read fresh in case of dynamic changes
+    const field = document.querySelector('#trackIdField');
+    const value = (field ? field.value : '').trim();
+    console.log('[TRACK] submit clicked', { selectedCarrier, valueLength: value.length, value });
     if (!value) {
       alert('Please enter a tracking number.');
       return;
