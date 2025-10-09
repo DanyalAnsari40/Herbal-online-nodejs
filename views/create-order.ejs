@@ -1457,7 +1457,8 @@
                 headers: {
                   'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({})
+                body: JSON.stringify({}),
+                credentials: 'same-origin'
               });
 
               console.log('Response status:', response.status);
@@ -2626,15 +2627,20 @@
             };
 // https://merchantapi.leopardscourier.com/api/bookPacket/format/json/
             try {
-              const response = await fetch('https://merchantapistaging.leopardscourier.com/api/bookPacket/format/json/', {
-                method: 'POST',             
+              const response = await fetch('/api/leopards/bookPacket', {
+                method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(formData),
+                credentials: 'same-origin'
               });
 
-              const result = await response.json();
+              const text = await response.text();
+              let result;
+              try { result = JSON.parse(text); } catch(_){
+                throw new Error('Unexpected response from server');
+              }
 
               if (result.status === 1) {
                 alert('Package booked successfully! Tracking ID: ' + (result.tracking_id || 'N/A'));
@@ -2708,7 +2714,8 @@
                 body: JSON.stringify({
                   from_date: document.getElementById('from-date').value,
                   to_date: document.getElementById('to-date').value
-                })
+                }),
+                credentials: 'same-origin'
               });
 
               const listData = await listResponse.json();
@@ -2750,7 +2757,8 @@
                 const detailResponse = await fetch("/api/leopards/shipmentDetailsByOrderId", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(detailPayload)
+                  body: JSON.stringify(detailPayload),
+                  credentials: 'same-origin'
                 });
 
                 const detailData = await detailResponse.json();

@@ -16,6 +16,14 @@ const multer = require('multer');
 const Finance = require('./models/Finance');
 // Use memory storage on Vercel (serverless FS is read-only); disk storage locally
 const upload = multer(process.env.VERCEL ? { storage: multer.memoryStorage() } : { dest: 'public/uploads/' });
+// Leopards API base (configurable: production default)
+const LCS_BASE = (process.env.LEOPARDS_API_BASE || 'https://merchantapi.leopardscourier.com').replace(/\/$/, '');
+// Per-endpoint URLs (Option B) with fallback to base
+const LCS_URL_CITIES = process.env.LEOPARDS_URL_CITIES || `${LCS_BASE}/api/getAllCities/format/json/`;
+const LCS_URL_BOOK = process.env.LEOPARDS_URL_BOOK || `${LCS_BASE}/api/bookPacket/format/json/`;
+const LCS_URL_DETAILS = process.env.LEOPARDS_URL_DETAILS || `${LCS_BASE}/api/getShipmentDetailsByOrderID/format/json/`;
+const LCS_URL_LAST_STATUS = process.env.LEOPARDS_URL_LAST_STATUS || `${LCS_BASE}/api/getBookedPacketLastStatus/format/json/`;
+const LCS_URL_TRACK = process.env.LEOPARDS_URL_TRACK || `${LCS_BASE}/api/trackBookedPacket/format/json/`;
 
 const LandingOrder = require('./models/Order'); // your simple schema: name, phone, createdAt
 const { Parser } = require('json2csv');
@@ -178,7 +186,7 @@ const ensureDbReady = (req, res, next) => {
   next();
 };
 
-// (Leopards API proxy routes moved below after isAuthenticated)
+// (Leopards API routes will be inserted below after hasPermission)
 
 // Order Schema
 const orderSchema = new mongoose.Schema({
@@ -311,6 +319,117 @@ const hasPermission = (permission) => (req, res, next) => {
   }
   res.status(403).render('error', { message: 'Access denied: Insufficient permissions' });
 };
+
+// ===== Leopards API Proxies (placed after isAuthenticated/hasPermission) =====
+// Helper to parse upstream as JSON safely
+async function parseJsonSafe(resp) {
+  const text = await resp.text();
+  try { return { ok: true, data: JSON.parse(text), raw: text }; }
+  catch { return { ok: false, data: { status: 0, error: 1, message: 'Upstream returned non-JSON', raw: text.slice(0, 300) }, raw: text }; }
+}
+
+// Cities
+app.post('/api/leopards/cities', isAuthenticated, async (req, res) => {
+  try {
+    const api_key = process.env.LEOPARDS_API_KEY;
+    const api_password = process.env.LEOPARDS_API_PASSWORD;
+    if (!api_key || !api_password) return res.status(400).json({ status: 0, error: 1, message: 'Missing Leopards API credentials' });
+    const url = LCS_URL_CITIES;
+    const upstream = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ api_key, api_password }) });
+    const parsed = await parseJsonSafe(upstream);
+    res.type('application/json');
+    return res.status(upstream.ok ? 200 : upstream.status).json(parsed.ok ? parsed.data : parsed.data);
+  } catch (e) {
+    console.error('Leopards cities error:', e?.message || e);
+    return res.status(500).json({ status: 0, error: 1, message: 'Failed to load cities' });
+  }
+});
+
+// Book Packet
+app.post('/api/leopards/bookPacket', isAuthenticated, async (req, res) => {
+  try {
+    const api_key = process.env.LEOPARDS_API_KEY;
+    const api_password = process.env.LEOPARDS_API_PASSWORD;
+    if (!api_key || !api_password) return res.status(400).json({ status: 0, error: 1, message: 'Missing Leopards API credentials' });
+    const url = LCS_URL_BOOK;
+    const payload = { ...req.body, api_key, api_password };
+    const upstream = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const parsed = await parseJsonSafe(upstream);
+    res.type('application/json');
+    return res.status(upstream.ok ? 200 : upstream.status).json(parsed.ok ? parsed.data : parsed.data);
+  } catch (e) {
+    console.error('Leopards bookPacket error:', e?.message || e);
+    return res.status(500).json({ status: 0, error: 1, message: 'Booking failed' });
+  }
+});
+
+// Shipment Details by Order ID
+app.post('/api/leopards/shipmentDetailsByOrderId', isAuthenticated, async (req, res) => {
+  try {
+    const api_key = process.env.LEOPARDS_API_KEY;
+    const api_password = process.env.LEOPARDS_API_PASSWORD;
+    const shipment_order_id = req.body.shipment_order_id;
+    if (!api_key || !api_password) return res.status(400).json({ status: 0, error: 1, message: 'Missing Leopards API credentials' });
+    if (!shipment_order_id) return res.status(400).json({ status: 0, error: 1, message: 'shipment_order_id is required' });
+    const url = LCS_URL_DETAILS;
+    const upstream = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ api_key, api_password, shipment_order_id }) });
+    const parsed = await parseJsonSafe(upstream);
+    res.type('application/json');
+    return res.status(upstream.ok ? 200 : upstream.status).json(parsed.ok ? parsed.data : parsed.data);
+  } catch (e) {
+    console.error('Leopards shipmentDetails error:', e?.message || e);
+    return res.status(500).json({ status: 0, error: 1, message: 'Failed to fetch shipment details' });
+  }
+});
+
+// Last Status
+app.post('/api/leopards/getBookedPacketLastStatus', isAuthenticated, async (req, res) => {
+  try {
+    const api_key = process.env.LEOPARDS_API_KEY;
+    const api_password = process.env.LEOPARDS_API_PASSWORD;
+    const { from_date, to_date } = req.body || {};
+    if (!api_key || !api_password) return res.status(400).json({ status: 0, error: 1, message: 'Missing Leopards API credentials' });
+    const qs = new URLSearchParams({ api_key, api_password });
+    if (from_date) qs.append('from_date', from_date);
+    if (to_date) qs.append('to_date', to_date);
+    const url = `${LCS_URL_LAST_STATUS}${LCS_URL_LAST_STATUS.includes('?') ? '&' : '?'}${qs.toString()}`;
+    const upstream = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
+    const parsed = await parseJsonSafe(upstream);
+    res.type('application/json');
+    return res.status(upstream.ok ? 200 : upstream.status).json(parsed.ok ? parsed.data : parsed.data);
+  } catch (e) {
+    console.error('Leopards last status error:', e?.message || e);
+    return res.status(500).json({ status: 0, error: 1, message: 'Failed to fetch last status' });
+  }
+});
+
+// Generic forward (optional)
+app.post('/api/leopards/forward', isAuthenticated, async (req, res) => {
+  try {
+    const api_key = process.env.LEOPARDS_API_KEY;
+    const api_password = process.env.LEOPARDS_API_PASSWORD;
+    if (!api_key || !api_password) return res.status(400).json({ status: 0, error: 1, message: 'Missing Leopards API credentials' });
+    const { url, method = 'POST', payload = {}, query = {} } = req.body || {};
+    if (!url || typeof url !== 'string') return res.status(400).json({ status: 0, error: 1, message: 'url is required' });
+    let parsedUrl;
+    try { parsedUrl = new URL(url); } catch { return res.status(400).json({ status: 0, error: 1, message: 'Invalid URL' }); }
+    const hostOk = /(^|\.)leopardscourier\.com$/i.test(parsedUrl.hostname);
+    if (!hostOk || !parsedUrl.pathname.startsWith('/api/')) return res.status(400).json({ status: 0, error: 1, message: 'URL not allowed' });
+    const qs = new URLSearchParams(query || {});
+    if (method.toUpperCase() === 'GET') { qs.set('api_key', api_key); qs.set('api_password', api_password); }
+    const forwardUrl = qs.toString() ? `${url}${url.includes('?') ? '&' : '?'}${qs}` : url;
+    const options = { method: method.toUpperCase(), headers: { 'Content-Type': 'application/json' } };
+    if (options.method !== 'GET') options.body = JSON.stringify({ ...(payload || {}), api_key, api_password });
+    const upstream = await fetch(forwardUrl, options);
+    const parsed = await parseJsonSafe(upstream);
+    res.type('application/json');
+    return res.status(upstream.ok ? 200 : upstream.status).json(parsed.ok ? parsed.data : parsed.data);
+  } catch (e) {
+    console.error('Leopards forward error:', e?.message || e);
+    return res.status(500).json({ status: 0, error: 1, message: 'Forward failed' });
+  }
+});
+// ===== End Leopards API Proxies =====
 
 // Input validation middleware
 const validateInput = {
@@ -522,7 +641,7 @@ app.post('/api/track/leopards', isAuthenticated, async (req, res) => {
       return res.status(400).json({ status: 0, error: 1, message: 'track_numbers is required' });
     }
 
-    const url = 'https://merchantapi.leopardscourier.com/api/trackBookedPacket/format/json/';
+    const url = LCS_URL_TRACK;
     const payload = { api_key, api_password, track_numbers };
 
     const resp = await fetch(url, {
