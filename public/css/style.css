@@ -108,7 +108,8 @@ body {
   background: white;
   border-radius: 15px;
   box-shadow: var(--shadow);
-  animation: slideUp 0.5s ease-out;
+  /* Disable entrance animation to prevent bouncing */
+  animation: none;
 }
 
 .form-group {
@@ -122,7 +123,7 @@ body {
   top: 50%;
   transform: translateY(-50%);
   color: var(--gray);
-  transition: var(--transition);
+  transition: none;
 }
 
 .form-group.floating input {
@@ -131,40 +132,44 @@ body {
   border: 1px solid #ddd;
   border-radius: 10px;
   font-size: 1rem;
-  transition: var(--transition);
+  /* Disable transitions to avoid bounce/jump */
+  transition: none;
   background: #f9f9f9;
 }
 
 .form-group.floating label {
   position: absolute;
-  left: 45px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 12px;           /* place label near left edge */
+  top: -8px;            /* keep label fixed above input */
+  transform: none;      /* no movement */
   color: var(--gray);
   pointer-events: none;
-  transition: var(--transition);
-  background: #f9f9f9;
-  padding: 0 5px;
+  transition: none;     /* no animation */
+  background: white;    /* match input bg to avoid overlap */
+  padding: 0 6px;
+  font-size: 12px;
 }
 
+/* Keep label static; do not shift on focus/valid */
 .form-group.floating input:focus ~ label,
 .form-group.floating input:valid ~ label {
-  top: 0;
-  transform: translateY(-50%) scale(0.9);
-  color: var(--primary);
-  background: white;
+  top: -8px;
+  transform: none;
+  color: var(--gray);
 }
 
 .form-group.floating input:focus,
 .form-group.floating input:valid {
   border-color: var(--primary);
   background: white;
-  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+  /* Remove focus glow to keep steady */
+  box-shadow: none;
 }
 
+/* Keep icon color steady */
 .form-group.floating input:focus ~ i,
 .form-group.floating input:valid ~ i {
-  color: var(--primary);
+  color: var(--gray);
 }
 
 .btn-track {
@@ -236,6 +241,21 @@ body {
 
 .modal-overlay.active .modal-container {
   transform: translateY(0);
+}
+
+/* Track ID modal refinements: smaller, steady (no slide), tighter paddings */
+#trackIdModal .modal-container {
+  max-width: 480px;
+  transform: none;
+  transition: none;
+  border-radius: 16px;
+}
+#trackIdModal .modal-header {
+  padding: 1rem 1.25rem;
+  text-align: center;
+}
+#trackIdModal .modal-body {
+  padding: 1rem 1.25rem 1.25rem;
 }
 
 .modal-header {

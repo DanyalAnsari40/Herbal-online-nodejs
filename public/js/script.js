@@ -130,23 +130,36 @@
 // });
 
 const trackBtn = document.querySelector('.btn-track');
-const p_id_Input = document.querySelector('#p_id');
+const p_id_Input = document.querySelector('#p_id'); // may be absent when using modal
 const modalOverlay = document.querySelector('#modalOverlay');
 const modalContent = document.querySelector('#modalContent');
 const closeModalBtn = document.querySelector('#closeModal');
-const service = document.querySelector('#service');
+const carrierButtons = Array.from(document.querySelectorAll('.carrier-btn'));
+let selectedCarrier = null;
+// Track ID modal elements
+const trackIdModal = document.querySelector('#trackIdModal');
+const trackIdField = document.querySelector('#trackIdField');
+const trackIdClose = document.querySelector('#trackIdClose');
+const trackIdSubmit = document.querySelector('#trackIdSubmit');
 
-trackBtn.addEventListener('click', async (e) => {
-  e.preventDefault();
-  runTracking();
-});
+if (trackBtn) {
+  trackBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    // If using modal flow, invoke it instead of reading inline input
+    if (trackIdModal && selectedCarrier) {
+      openTrackIdModal();
+      return;
+    }
+    runTracking();
+  });
+}
 
-function runTracking() {
-  const selected_Service = service.value.trim();
-  const p_id = p_id_Input.value.trim();
+function runTracking(pIdOverride) {
+  const selected_Service = (selectedCarrier || '').trim();
+  const p_id = (pIdOverride || (p_id_Input ? p_id_Input.value : '')).trim();
 
   if (!selected_Service || !p_id) {
-    alert("Please select service and enter tracking ID.");
+    alert("Please select courier and enter tracking ID.");
     return;
   }
 
@@ -162,6 +175,12 @@ function runTracking() {
   }
   if (selected_Service === 'M&P') {
     const trackURL = `https://www.mulphilog.com/tracking/${p_id}?_token=UwsLwRDWIxO81neG7M6saftVOAWm6aXLRRqSLDtU&consignment=${p_id}`;
+    showIframePopup(trackURL);
+    return;
+  }
+  if (selected_Service === 'POSTEX') {
+    // Placeholder URL; will be replaced when backend integration is added
+    const trackURL = `https://merchant.postex.pk/track/${encodeURIComponent(p_id)}`;
     showIframePopup(trackURL);
     return;
   }
@@ -199,19 +218,80 @@ document.querySelectorAll('.form-group.floating input').forEach(input => {
 // ------------------
 // Allow auto-fill if navigated with ?service=TCS&p_id=123
 window.addEventListener('DOMContentLoaded', () => {
+  // Button selection handling
+  carrierButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // clear previous selection
+      carrierButtons.forEach(b => {
+        b.classList.remove('ring-2', 'ring-orange-400', 'success-glow');
+        b.setAttribute('aria-pressed', 'false');
+      });
+      // set selection
+      selectedCarrier = btn.dataset.carrier;
+      btn.classList.add('ring-2', 'ring-orange-400', 'success-glow');
+      btn.setAttribute('aria-pressed', 'true');
+      // open modal for tracking ID entry
+      openTrackIdModal();
+    });
+  });
+
+  // URL params autofill
   const params = new URLSearchParams(window.location.search);
   const serviceParam = params.get('service');
   const idParam = params.get('p_id');
 
   if (serviceParam) {
-    const option = Array.from(service.options).find(opt => opt.value.toLowerCase() === serviceParam.toLowerCase());
-    if (option) option.selected = true;
+    const target = carrierButtons.find(b => (b.dataset.carrier || '').toLowerCase() === serviceParam.toLowerCase());
+    if (target) {
+      target.click();
+    }
   }
   if (idParam) {
-    p_id_Input.value = idParam;
-  }
-
-  if (serviceParam && idParam) {
-    // runTracking();
+    if (p_id_Input) p_id_Input.value = idParam;
   }
 });
+
+// Modal helpers
+function openTrackIdModal() {
+  if (!trackIdModal) return;
+  trackIdModal.classList.add('active');
+  if (trackIdField) {
+    trackIdField.value = '';
+    setTimeout(() => trackIdField.focus(), 0);
+  }
+}
+
+if (trackIdClose) {
+  trackIdClose.addEventListener('click', () => {
+    trackIdModal.classList.remove('active');
+  });
+}
+
+if (trackIdModal) {
+  trackIdModal.addEventListener('click', (e) => {
+    if (e.target === trackIdModal) {
+      trackIdModal.classList.remove('active');
+    }
+  });
+}
+
+if (trackIdSubmit) {
+  trackIdSubmit.addEventListener('click', () => {
+    const value = (trackIdField ? trackIdField.value : '').trim();
+    if (!value) {
+      alert('Please enter a tracking number.');
+      return;
+    }
+    trackIdModal.classList.remove('active');
+    runTracking(value);
+  });
+}
+
+if (trackIdField) {
+  trackIdField.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      trackIdSubmit.click();
+    }
+  });
+}
