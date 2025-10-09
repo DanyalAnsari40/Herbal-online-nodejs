@@ -43,27 +43,19 @@
       <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
     </a>
     
-    <a href="/admin/orders"
-      class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'orders' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
-      <% if (currentRoute === 'orders') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>
-      <div class="flex items-center justify-center w-10 h-10 rounded-lg mr-4 group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
-        <i class="fas fa-shopping-cart text-white"></i>
-      </div>
-      <span class="sidebar-text font-medium">Orders</span>
-      <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
-    </a>
-    
-    <a href="/admin/attendence"
-      class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'attendence' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
-      <% if (currentRoute === 'attendence') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>
-      <div class="flex items-center justify-center w-10 h-10 rounded-lg mr-4 group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
-        <i class="fa-solid fa-clock text-white"></i>
-      </div>
-      <span class="sidebar-text font-medium">Attendance</span>
-      <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
-    </a>
-    
-    <% if (user.permissions.includes('create-order')) { %>
+    <% if (user.permissions && user.permissions.includes('orders')) { %>
+      <a href="/admin/orders"
+        class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'orders' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
+        <% if (currentRoute === 'orders') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>
+        <div class="flex items-center justify-center w-10 h-10 rounded-lg mr-4 group-hover:scale-110 transition-transform" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+          <i class="fas fa-shopping-cart text-white"></i>
+        </div>
+        <span class="sidebar-text font-medium">Orders</span>
+        <i class="fas fa-chevron-right ml-auto opacity-0 group-hover:opacity-100 transition-opacity"></i>
+      </a>
+    <% } %>
+
+    <% if (user.permissions && user.permissions.includes('create-order')) { %>
       <a href="/admin/create-order"
         class="sidebar-item group flex items-center px-6 py-4 rounded-xl transition-all duration-300 <%= currentRoute === 'create-order' ? 'border-l-4 shadow-lg' : 'hover:bg-white/10 hover:translate-x-2' %>"
         <% if (currentRoute === 'create-order') { %>style="background: rgba(252, 163, 17, 0.2); border-color: #FCA311;"<% } %>>

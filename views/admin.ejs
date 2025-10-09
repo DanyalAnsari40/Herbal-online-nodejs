@@ -156,87 +156,57 @@
       </div>
     </div>
   <% } else { %>
-    <!-- Employee Dashboard -->
-    <div class="min-h-screen flex flex-col">
-      <!-- Employee header with special style -->
-      <header class="bg-gradient-to-r from-green-600 via-green-700 to-indigo-700 text-white shadow-lg">
-        <div class="container mx-auto px-6 py-4">
-          <div class="flex justify-between items-center">
-            <div class="flex items-center space-x-4">
-              <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-white">
-                <img src="<%= getProfilePicUrlLarge(user.profilePic) %>" alt="Profile"
-                  class="w-full h-full object-cover">
-              </div>
-              <div>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent">
-                  Dashboard</h1>
-                <p class="text-green-100 text-sm flex items-center mt-1">
-                  <i class="fas fa-user-circle mr-2"></i>
-                  Welcome, <%= user.email %>
-                  <span class="ml-2 px-2 py-1 bg-white/20 rounded-full text-xs font-medium">
-                    <%= user.role %>
-                  </span>
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center space-x-4">
-              <button onclick="document.getElementById('profileModal').classList.remove('hidden')"
-                class="text-white hover:text-green-200 text-xl transition">
-                <i class="fas fa-cog"></i>
-              </button>
-              <a href="/logout"
-                class="flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all duration-200 backdrop-blur-sm">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-              </a>
-            </div>
-          </div>
-        </div>
-      </header>
+    <!-- Employee Dashboard with modern sidebar -->
+    <div class="min-h-screen flex">
+      <%- include('partials/modern-sidebar') %>
 
-      <!-- Employee Main Content -->
-      <main class="container mx-auto px-6 py-8 flex-grow">
-        <section class="flex flex-col items-center justify-center min-h-[54.5vh]">
-          <div class="mb-5 text-center">
-            <h2 class="text-4xl font-bold text-gray-800 mb-2">Welcome</h2>
-            <p class="text-gray-600 text-lg">Here's your personal activity summary</p>
-          </div>
+      <div class="flex-1 flex flex-col">
+        <%- include('partials/modern-header', { pageTitle: 'Dashboard', user: user, currentRoute: currentRoute }) %>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 w-auto justify-center">
-            <div class="p-8 rounded-3xl shadow-xl border bg-gradient-to-br from-blue-100 to-blue-50 text-center hover:scale-105 transition-transform duration-300">
-              <div class="flex justify-center mb-4">
-                <div class="bg-blue-500 p-4 rounded-full text-white">
-                  <i class="fas fa-box text-2xl"></i>
+        <!-- Employee Main Content -->
+        <main class="container mx-auto px-6 py-8 flex-grow">
+          <section class="flex flex-col items-center justify-center min-h-[54.5vh]">
+            <div class="mb-5 text-center">
+              <h2 class="text-4xl font-bold text-gray-800 mb-2">Welcome</h2>
+              <p class="text-gray-600 text-lg">Here's your personal activity summary</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 w-auto justify-center">
+              <div class="p-8 rounded-3xl shadow-xl border bg-gradient-to-br from-blue-100 to-blue-50 text-center hover:scale-105 transition-transform duration-300">
+                <div class="flex justify-center mb-4">
+                  <div class="bg-blue-500 p-4 rounded-full text-white">
+                    <i class="fas fa-box text-2xl"></i>
+                  </div>
                 </div>
+                <p class="text-4xl font-extrabold text-blue-800 mb-2"><%= createOrderCount %></p>
+                <p class="text-md text-blue-700 font-semibold">Orders Created By You</p>
               </div>
-              <p class="text-4xl font-extrabold text-blue-800 mb-2"><%= createOrderCount %></p>
-              <p class="text-md text-blue-700 font-semibold">Orders Created By You</p>
-            </div>
 
-            <div class="p-8 rounded-3xl shadow-xl border bg-gradient-to-br from-indigo-100 to-indigo-50 text-center hover:scale-105 transition-transform duration-300">
-              <div class="flex justify-center mb-4">
-                <div class="bg-indigo-500 p-4 rounded-full text-white">
-                  <i class="fas fa-shipping-fast text-2xl"></i>
+              <div class="p-8 rounded-3xl shadow-xl border bg-gradient-to-br from-indigo-100 to-indigo-50 text-center hover:scale-105 transition-transform duration-300">
+                <div class="flex justify-center mb-4">
+                  <div class="bg-indigo-500 p-4 rounded-full text-white">
+                    <i class="fas fa-shipping-fast text-2xl"></i>
+                  </div>
                 </div>
+                <p class="text-4xl font-extrabold text-indigo-800 mb-2"><%= totalDispatchedOrders %></p>
+                <p class="text-md text-indigo-700 font-semibold">Orders You Dispatched</p>
               </div>
-              <p class="text-4xl font-extrabold text-indigo-800 mb-2"><%= totalDispatchedOrders %></p>
-              <p class="text-md text-indigo-700 font-semibold">Orders You Dispatched</p>
             </div>
-          </div>
-        </section>
-      </main>
+          </section>
+        </main>
 
-       <!-- Footer -->
-    <footer class="bg-gray-900 text-gray-300 py-8 mt-12">
-      <div class="container mx-auto px-6 text-center">
-        <div class="flex items-center justify-center space-x-4 mb-2">
-          <i class="fas fa-shield-alt text-green-400"></i>
-          <span class="font-semibold text-white">Admin Panel</span>
-          <i class="fas fa-shield-alt text-green-400"></i>
-        </div>
-        <p class="text-sm"> 2025 Admin Panel. All rights reserved. | Secure • Reliable • Efficient</p>
+        <!-- Footer -->
+        <footer class="bg-gray-900 text-gray-300 py-8 mt-12">
+          <div class="container mx-auto px-6 text-center">
+            <div class="flex items-center justify-center space-x-4 mb-2">
+              <i class="fas fa-shield-alt text-green-400"></i>
+              <span class="font-semibold text-white">Admin Panel</span>
+              <i class="fas fa-shield-alt text-green-400"></i>
+            </div>
+            <p class="text-sm"> 2025 Admin Panel. All rights reserved. | Secure • Reliable • Efficient</p>
+          </div>
+        </footer>
       </div>
-    </footer>
     </div>
   <% } %>
 
