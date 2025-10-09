@@ -345,6 +345,40 @@ app.post('/api/leopards/cities', isAuthenticated, async (req, res) => {
   }
 });
 
+// ===== TCS Tracking Proxy =====
+// Uses: process.env.TCS_URL_TRACK and process.env.TCS_BEARER
+app.post('/api/track/tcs', isAuthenticated, async (req, res) => {
+  try {
+    const url = (process.env.TCS_URL_TRACK || '').trim();
+    const bearer = (process.env.TCS_BEARER || '').trim();
+    const consignee = (req.body?.consignee || '').toString().trim();
+    if (!url) return res.status(500).json({ status: 0, error: 1, message: 'TCS_URL_TRACK not configured on server' });
+    if (!bearer) return res.status(500).json({ status: 0, error: 1, message: 'TCS_BEARER missing on server' });
+    if (!consignee) return res.status(400).json({ status: 0, error: 1, message: 'consignee (CN) is required' });
+
+    // TCS docs indicate GET with consignee array; use query param(s)
+    const qs = new URLSearchParams();
+    // If TCS supports multiple, they allow repeated keys; for now send single
+    qs.append('consignee', consignee);
+    const forward = `${url}?${qs.toString()}`;
+    const upstream = await fetch(forward, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        Authorization: `Bearer ${bearer}`
+      }
+    });
+    const parsed = await parseJsonSafe(upstream);
+    try { console.log('[TCS track] upstream', { ok: upstream.ok, status: upstream.status, url: forward, hasBearer: !!bearer, bodyKeys: Object.keys(parsed.ok ? (parsed.data||{}) : (parsed.data||{})) }); } catch(_) {}
+    res.type('application/json');
+    return res.status(upstream.ok ? 200 : upstream.status).json(parsed.ok ? parsed.data : parsed.data);
+  } catch (e) {
+    console.error('TCS track error:', e?.message || e);
+    return res.status(500).json({ status: 0, error: 1, message: 'TCS tracking failed' });
+  }
+});
+// ===== End TCS Tracking Proxy =====
+
 // Book Packet
 app.post('/api/leopards/bookPacket', isAuthenticated, async (req, res) => {
   try {

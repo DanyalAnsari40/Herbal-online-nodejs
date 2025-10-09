@@ -23,6 +23,70 @@ const trackBtn = document.querySelector('.btn-track:not(#trackIdSubmit)');
 //   //   return;
 //   // }
 
+function buildTcsResultsHtml(data) {
+  const info = Array.isArray(data?.shipmentinfo) ? data.shipmentinfo[0] : null;
+  const checkpoints = Array.isArray(data?.checkpoints) ? data.checkpoints : [];
+  if (!info && checkpoints.length === 0) {
+    return `<div class="p-6 text-gray-600">No tracking data found.</div>`;
+  }
+  const header = `
+    <div class="tracking-header">
+      <h3 class="text-lg font-semibold">Tracking: ${escapeHtml(info?.consignmentno || '')}</h3>
+      <div class="route">
+        <i class="fas fa-route"></i>
+        <span>${escapeHtml(info?.origin || 'N/A')} → ${escapeHtml(info?.destination || 'N/A')}</span>
+      </div>
+    </div>`;
+
+  const infoRows = info ? [
+    ['Booking Date', info.bookingdate],
+    ['Shipper', info.shipper],
+    ['Consignee', info.consignee],
+    ['Origin', info.origin],
+    ['Destination', info.destination],
+    ['Reference #', info.referenceno]
+  ] : [];
+
+  const infoTable = info ? `
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <tbody>
+          ${infoRows.map(([k,v]) => `
+            <tr class="border-b">
+              <td class="px-3 py-2 font-medium text-gray-700">${escapeHtml(k)}</td>
+              <td class="px-3 py-2 text-gray-800">${escapeHtml(v ?? '—')}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>` : '';
+
+  const detailTable = checkpoints.length > 0 ? `
+    <div class="mt-6">
+      <h4 class="text-md font-semibold mb-2">Tracking Detail</h4>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="px-3 py-2 text-left">Status</th>
+              <th class="px-3 py-2 text-left">Received By</th>
+              <th class="px-3 py-2 text-left">Date/Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${checkpoints.map(d => `
+              <tr class="border-b">
+                <td class="px-3 py-2">${escapeHtml(d.status || '')}</td>
+                <td class="px-3 py-2">${escapeHtml(d.recievedby || '')}</td>
+                <td class="px-3 py-2">${escapeHtml(d.datetime || '')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : '';
+
+  return `${header}${infoTable}${detailTable}`;
+}
+
 function buildMnpResultsHtml(data) {
   const arr = Array.isArray(data) ? data : [];
   const root = arr[0] || {};
@@ -321,8 +385,35 @@ function runTracking(pIdOverride) {
   }
 
   if (selected_Service === 'TCS') {
-    const trackURL = `https://www.tcsexpress.com/track/${p_id}`;
-    showIframePopup(trackURL);
+    fetch('/api/track/tcs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consignee: p_id }),
+      credentials: 'same-origin'
+    })
+      .then(async (r) => {
+        const ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) { throw new Error('Not JSON'); }
+        const data = await r.json();
+        return { ok: r.ok, data };
+      })
+      .then(({ ok, data }) => {
+        if (!ok || !data) {
+          modalContent.innerHTML = `<div class="p-4 text-red-600">Unable to fetch tracking info</div>`;
+          modalOverlay.classList.add('active');
+          document.body.style.overflow = 'hidden';
+          return;
+        }
+        const html = buildTcsResultsHtml(data);
+        modalContent.innerHTML = html;
+        modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      })
+      .catch(err => {
+        modalContent.innerHTML = `<div class=\"p-4 text-red-600\">Request failed. Please ensure you are logged in and try again.</div>`;
+        modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      });
     return;
   }
   if (selected_Service === 'LEOPARDS') {
