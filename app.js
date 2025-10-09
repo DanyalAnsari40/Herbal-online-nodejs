@@ -16,6 +16,7 @@ const multer = require('multer');
 const Finance = require('./models/Finance');
 // Use memory storage on Vercel (serverless FS is read-only); disk storage locally
 const upload = multer(process.env.VERCEL ? { storage: multer.memoryStorage() } : { dest: 'public/uploads/' });
+
 const LandingOrder = require('./models/Order'); // your simple schema: name, phone, createdAt
 const { Parser } = require('json2csv');
 
@@ -176,6 +177,8 @@ const ensureDbReady = (req, res, next) => {
   }
   next();
 };
+
+// (Leopards API proxy routes moved below after isAuthenticated)
 
 // Order Schema
 const orderSchema = new mongoose.Schema({
@@ -503,6 +506,40 @@ app.get('/', (req, res) => {
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ ok: true });
+});
+
+// Leopards Tracking Proxy
+app.post('/api/track/leopards', isAuthenticated, async (req, res) => {
+  try {
+    const api_key = process.env.LEOPARDS_API_KEY || req.body.api_key;
+    const api_password = process.env.LEOPARDS_API_PASSWORD || req.body.api_password;
+    const track_numbers = (req.body.track_numbers || '').toString();
+
+    if (!api_key || !api_password) {
+      return res.status(400).json({ status: 0, error: 1, message: 'Missing Leopards API credentials' });
+    }
+    if (!track_numbers) {
+      return res.status(400).json({ status: 0, error: 1, message: 'track_numbers is required' });
+    }
+
+    const url = 'https://merchantapi.leopardscourier.com/api/trackBookedPacket/format/json/';
+    const payload = { api_key, api_password, track_numbers };
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      return res.status(resp.status).json({ status: 0, error: 1, message: 'Leopards API error', details: data });
+    }
+    return res.status(200).json(data);
+  } catch (e) {
+    console.error('Leopards track error:', e?.message || e);
+    return res.status(500).json({ status: 0, error: 1, message: 'Tracking failed' });
+  }
 });
 // Landing page order submission with validation
 app.post('/order', (req, res, next) => {

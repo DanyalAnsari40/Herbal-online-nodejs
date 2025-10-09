@@ -21,6 +21,86 @@
 //   //   alert('Invalid username or password');
 //   //   return;
 //   // }
+
+function buildLeopardsResultsHtml(data) {
+  const packets = Array.isArray(data.packet_list) ? data.packet_list : [];
+  if (packets.length === 0) {
+    return `<div class="p-6 text-gray-600">No results found.</div>`;
+  }
+  const p = packets[0];
+  const header = `
+    <div class="tracking-header">
+      <h3 class="text-lg font-semibold">Tracking: ${escapeHtml(p.track_number || '')}</h3>
+      <div class="route">
+        <i class="fas fa-route"></i>
+        <span>${escapeHtml(p.origin_city_name || 'N/A')} → ${escapeHtml(p.destination_city_name || 'N/A')}</span>
+      </div>
+    </div>`;
+
+  const infoRows = [
+    ['Booking Date', p.booking_date],
+    ['Weight', p.booked_packet_weight],
+    ['Pieces', p.booked_packet_no_piece],
+    ['Collect Amount', p.booked_packet_collect_amount],
+    ['Order ID', p.booked_packet_order_id],
+    ['Invoice #', p.invoice_number],
+    ['Invoice Date', p.invoice_date],
+    ['Status', p.booked_packet_status],
+    ['Activity Date', p.activity_date],
+    ['Status Remarks', p.status_reamrks]
+  ];
+
+  const infoTable = `
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <tbody>
+          ${infoRows.map(([k,v]) => `
+            <tr class="border-b">
+              <td class="px-3 py-2 font-medium text-gray-700">${escapeHtml(k)}</td>
+              <td class="px-3 py-2 text-gray-800">${escapeHtml(v ?? '—')}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  const details = Array.isArray(p['Tracking Detail']) ? p['Tracking Detail'] : [];
+  const detailTable = details.length > 0 ? `
+    <div class="mt-6">
+      <h4 class="text-md font-semibold mb-2">Tracking Detail</h4>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="px-3 py-2 text-left">Status</th>
+              <th class="px-3 py-2 text-left">Receiver</th>
+              <th class="px-3 py-2 text-left">Activity Date</th>
+              <th class="px-3 py-2 text-left">Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${details.map(d => `
+              <tr class="border-b">
+                <td class="px-3 py-2">${escapeHtml(d['Staus'] || d['Status'] || '')}</td>
+                <td class="px-3 py-2">${escapeHtml(d['Reciever Name'] || d['Receiver Name'] || '')}</td>
+                <td class="px-3 py-2">${escapeHtml(d['Activity Date'] || '')}</td>
+                <td class="px-3 py-2">${escapeHtml(d['Reason'] || '')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : '';
+
+  return `${header}${infoTable}${detailTable}`;
+}
+
+function escapeHtml(val) {
+  return String(val ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 //             //! Checking the servive type?
   
 //   const serviceUrlMap = {
@@ -169,8 +249,31 @@ function runTracking(pIdOverride) {
     return;
   }
   if (selected_Service === 'LEOPARDS') {
-    const trackURL = `http://www.leopardscourier.com/shipment_tracking?cn_number=${p_id}`;
-    showIframePopup(trackURL);
+    // Use backend proxy to keep credentials on server
+    fetch('/api/track/leopards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ track_numbers: p_id })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data || data.status !== 1) {
+          const msg = data && (data.message || data.error) ? (data.message || data.error) : 'Unable to fetch tracking info';
+          modalContent.innerHTML = `<div class="p-4 text-red-600">${msg}</div>`;
+          modalOverlay.classList.add('active');
+          document.body.style.overflow = 'hidden';
+          return;
+        }
+        const html = buildLeopardsResultsHtml(data);
+        modalContent.innerHTML = html;
+        modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      })
+      .catch(err => {
+        modalContent.innerHTML = `<div class="p-4 text-red-600">Request failed</div>`;
+        modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      });
     return;
   }
   if (selected_Service === 'M&P') {

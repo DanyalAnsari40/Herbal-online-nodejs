@@ -1452,15 +1452,12 @@
           async function loadCities() {
             try {
               console.log('Loading cities...');
-              const response = await fetch('https://merchantapistaging.leopardscourier.com/api/getAllCities/format/json/', {
+              const response = await fetch('/api/leopards/cities', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                  api_key: 'c7ab1d5f6b35f23b496c9cc24d4715c1',
-                  api_password: '123456'
-                })
+                body: JSON.stringify({})
               });
 
               console.log('Response status:', response.status);
@@ -2601,8 +2598,6 @@
             e.preventDefault();
 
             const formData = {
-              api_key: document.getElementById('api_key').value,
-              api_password: document.getElementById('api_password').value,
               booked_packet_weight: parseInt(document.getElementById('booked_packet_weight').value),
               booked_packet_vol_weight_w: document.getElementById('booked_packet_vol_weight_w').value || '',
               booked_packet_vol_weight_h: document.getElementById('booked_packet_vol_weight_h').value || '',
@@ -2629,10 +2624,10 @@
               return_city: document.getElementById('return_city').value || '',
               is_vpc: parseInt(document.getElementById('is_vpc').value)
             };
-
+// https://merchantapi.leopardscourier.com/api/bookPacket/format/json/
             try {
               const response = await fetch('https://merchantapistaging.leopardscourier.com/api/bookPacket/format/json/', {
-                method: 'POST',
+                method: 'POST',             
                 headers: {
                   'Content-Type': 'application/json',
                 },
@@ -2707,16 +2702,13 @@
             resultDiv.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-green-500 mb-3"></i><p>Loading shipment data...</p></div>';
 
             try {
-              const params = new URLSearchParams({
-                api_key: 'c7ab1d5f6b35f23b496c9cc24d4715c1',
-                api_password: '123456',
-                from_date: document.getElementById('from-date').value,
-                to_date: document.getElementById('to-date').value
-              });
-// https://merchantapistaging.leopardscourier.com/api/getBookedPacketLastStatus/format/json/
-              const listResponse = await fetch(`https://merchantapistaging.leopardscourier.com/api/getBookedPacketLastStatus/format/json/?${params.toString()}`, {
-                method: "GET",
-                headers: { "Content-Type": "application/json" }
+              const listResponse = await fetch('/api/leopards/getBookedPacketLastStatus', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  from_date: document.getElementById('from-date').value,
+                  to_date: document.getElementById('to-date').value
+                })
               });
 
               const listData = await listResponse.json();
@@ -2752,12 +2744,10 @@
 
               for (const chunk of chunks) {
                 const detailPayload = {
-                  api_key: 'c7ab1d5f6b35f23b496c9cc24d4715c1',
-                  api_password: '123456',
                   shipment_order_id: chunk
                 };
 
-                const detailResponse = await fetch("https://merchantapistaging.leopardscourier.com/api/getShipmentDetailsByOrderID/format/json/", {
+                const detailResponse = await fetch("/api/leopards/shipmentDetailsByOrderId", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify(detailPayload)
