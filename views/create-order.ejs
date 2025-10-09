@@ -1550,6 +1550,10 @@
             if (dropdown) dropdown.classList.add('hidden');
           }
 
+          // Expose to window for inline onclick handlers
+          window.openMnpModal = openMnpModal;
+          window.closeMnpModal = closeMnpModal;
+
           // Product search functionality for M&P Product Details
           (function initMnpProductSearch() {
             const searchInput = document.getElementById('productDetails');
@@ -1656,15 +1660,12 @@
 
           // Load Cities into dropdown (M&P)
           async function loadMnpCities() {
-            const username = "ALI.RAZA_18O59";
-            const password = "AliRaza@123";
-            const accountNo = "4T1542";
-            const locationID = "29609";
-
-            const url = `http://mnpcourier.com/mycodapi/api/Branches/Get_Cities?username=${username}&password=${password}&accountNo=${accountNo}&locationID=${locationID}`;
-
             try {
-              const response = await fetch(url);
+              const response = await fetch('/api/mnp/cities', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+              });
               const cities = await response.json();
 
               const dropdown = document.getElementById("destinationCityName");
@@ -1697,10 +1698,6 @@
           // Booking Form Submission (M&P)
           document.getElementById("mnpForm").addEventListener("submit", async function (e) {
             e.preventDefault();
-
-            const username = "ALI.RAZA_18O59";
-            const password = "AliRaza@123";
-            const accountNo = "4T1542";
 
             // helper to safely read optional fields
             const getVal = (id) => {
@@ -1738,9 +1735,6 @@
               InsertType: getVal('InsertType'),
               ReturnLocation: getVal('ReturnLocation'),
               subAccountId: getVal('subAccountId'),
-              username,
-              password,
-              accountNo,
               // Add product info for backend processing
               productId: productId,
               piecesCount: pieces
@@ -1752,7 +1746,8 @@
               const response = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(formData),
+                credentials: 'same-origin'
               });
 
               const data = await response.json();

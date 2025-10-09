@@ -431,6 +431,82 @@ app.post('/api/leopards/forward', isAuthenticated, async (req, res) => {
 });
 // ===== End Leopards API Proxies =====
 
+// ===== M&P Tracking Proxy =====
+const MNP_TRACK_URL = (process.env.MNP_TRACK_URL || 'http://mnpcourier.com/mycodapi/api/Tracking/Consignment_Tracking').replace(/\/$/, '');
+app.post('/api/track/mnp', isAuthenticated, async (req, res) => {
+  try {
+    const username = process.env.MNP_USERNAME || req.body.username;
+    const password = process.env.MNP_PASSWORD || req.body.password;
+    const consignment = (req.body.consignment || '').toString().trim();
+    if (!username) return res.status(400).json({ status: 0, error: 1, message: 'Missing MNP_USERNAME' });
+    if (!consignment) return res.status(400).json({ status: 0, error: 1, message: 'consignment is required' });
+    const qs = new URLSearchParams({ username, consignment });
+    if (password) qs.set('password', password);
+    const url = `${MNP_TRACK_URL}?${qs.toString()}`;
+    const upstream = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+    const parsed = await parseJsonSafe(upstream);
+    res.type('application/json');
+    return res.status(upstream.ok ? 200 : upstream.status).json(parsed.ok ? parsed.data : parsed.data);
+  } catch (e) {
+    console.error('MNP track error:', e?.message || e);
+    return res.status(500).json({ status: 0, error: 1, message: 'MNP tracking failed' });
+  }
+});
+// ===== End M&P Tracking Proxy =====
+
+// ===== M&P Cities Proxy =====
+const MNP_URL_CITIES = process.env.MNP_URL_CITIES || 'http://mnpcourier.com/mycodapi/api/Branches/Get_Cities';
+app.post('/api/mnp/cities', isAuthenticated, async (req, res) => {
+  try {
+    const username = process.env.MNP_USERNAME;
+    const password = process.env.MNP_PASSWORD || '';
+    const accountNo = process.env.MNP_ACCOUNT_NO || '';
+    const locationID = process.env.MNP_LOCATION_ID || '';
+    if (!username) return res.status(400).json({ status: 0, error: 1, message: 'Missing MNP_USERNAME' });
+    const qs = new URLSearchParams({ username });
+    if (password) qs.set('password', password);
+    if (accountNo) qs.set('accountNo', accountNo);
+    if (locationID) qs.set('locationID', locationID);
+    const url = `${MNP_URL_CITIES}?${qs.toString()}`;
+    const upstream = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+    const parsed = await parseJsonSafe(upstream);
+    res.type('application/json');
+    return res.status(upstream.ok ? 200 : upstream.status).json(parsed.ok ? parsed.data : parsed.data);
+  } catch (e) {
+    console.error('MNP cities error:', e?.message || e);
+    return res.status(500).json({ status: 0, error: 1, message: 'MNP cities failed' });
+  }
+});
+// ===== End M&P Cities Proxy =====
+
+// ===== M&P Booking Proxy =====
+const MNP_URL_BOOK = process.env.MNP_URL_BOOK || 'http://mnpcourier.com/mycodapi/api/Booking/InsertBookingData';
+app.post('/api/mnp/booking', isAuthenticated, async (req, res) => {
+  try {
+    const username = process.env.MNP_USERNAME;
+    const password = process.env.MNP_PASSWORD || '';
+    const accountNo = process.env.MNP_ACCOUNT_NO || '';
+    const locationID = process.env.MNP_LOCATION_ID || '';
+    if (!username) return res.status(400).json({ status: 0, error: 1, message: 'Missing MNP_USERNAME' });
+
+    // Merge form payload with required auth fields as per M&P API
+    const payload = { ...(req.body || {}), username, password, accountNo, locationID };
+
+    const upstream = await fetch(MNP_URL_BOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const parsed = await parseJsonSafe(upstream);
+    res.type('application/json');
+    return res.status(upstream.ok ? 200 : upstream.status).json(parsed.ok ? parsed.data : parsed.data);
+  } catch (e) {
+    console.error('MNP booking error:', e?.message || e);
+    return res.status(500).json({ status: 0, error: 1, message: 'MNP booking failed' });
+  }
+});
+// ===== End M&P Booking Proxy =====
+
 // Input validation middleware
 const validateInput = {
   // Email validation
