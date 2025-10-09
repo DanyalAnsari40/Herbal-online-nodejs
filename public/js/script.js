@@ -23,6 +23,67 @@ const trackBtn = document.querySelector('.btn-track:not(#trackIdSubmit)');
 //   //   return;
 //   // }
 
+function buildPostexResultsHtml(data) {
+  const dist = data && typeof data === 'object' ? (data.dist || data.data || {}) : {};
+  const hist = Array.isArray(dist.transactionStatusHistory) ? dist.transactionStatusHistory : [];
+  const header = `
+    <div class="tracking-header">
+      <h3 class="text-lg font-semibold">Tracking: ${escapeHtml(dist.trackingNumber || '')}</h3>
+      <div class="route">
+        <i class="fas fa-route"></i>
+        <span>${escapeHtml(dist.merchantName || 'Merchant')} → ${escapeHtml(dist.cityName || 'City')}</span>
+      </div>
+    </div>`;
+
+  const infoRows = [
+    ['Customer', dist.customerName],
+    ['Phone', dist.customerPhone],
+    ['Address', dist.deliveryAddress],
+    ['Invoice Amount', dist.invoicePayment],
+    ['Order Ref #', dist.orderRefNumber],
+    ['Transaction Date', dist.transactionDate],
+    ['Status', dist.transactionStatus],
+    ['Merchant', dist.merchantName]
+  ];
+
+  const infoTable = `
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <tbody>
+          ${infoRows.map(([k,v]) => `
+            <tr class="border-b">
+              <td class="px-3 py-2 font-medium text-gray-700">${escapeHtml(k)}</td>
+              <td class="px-3 py-2 text-gray-800">${escapeHtml(v ?? '—')}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  const detailTable = hist.length > 0 ? `
+    <div class="mt-6">
+      <h4 class="text-md font-semibold mb-2">Tracking Detail</h4>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="px-3 py-2 text-left">Message</th>
+              <th class="px-3 py-2 text-left">Code</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${hist.map(d => `
+              <tr class="border-b">
+                <td class="px-3 py-2">${escapeHtml(d.transactionStatusMessage || '')}</td>
+                <td class="px-3 py-2">${escapeHtml(d.transactionStatusMessageCode || '')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : '';
+
+  return `${header}${infoTable}${detailTable}`;
+}
+
 function buildTcsResultsHtml(data) {
   const info = Array.isArray(data?.shipmentinfo) ? data.shipmentinfo[0] : null;
   const checkpoints = Array.isArray(data?.checkpoints) ? data.checkpoints : [];
@@ -485,9 +546,86 @@ function runTracking(pIdOverride) {
     return;
   }
   if (selected_Service === 'POSTEX') {
-    // Placeholder URL; will be replaced when backend integration is added
-    const trackURL = `https://merchant.postex.pk/track/${encodeURIComponent(p_id)}`;
-    showIframePopup(trackURL);
+    fetch('/api/track/postex', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trackingNumber: p_id }),
+      credentials: 'same-origin'
+    })
+      .then(async (r) => {
+        const ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) { return { ok: false, data: null }; }
+        const data = await r.json();
+        return { ok: r.ok, data };
+      })
+      .then(({ ok, data }) => {
+        if (ok && data) {
+          const html = buildPostexResultsHtml(data);
+          modalContent.innerHTML = html;
+          modalOverlay.classList.add('active');
+          document.body.style.overflow = 'hidden';
+          return;
+        }
+        // Fallback: direct PostEx call like cities
+        const tokenEl = document.getElementById('postex_token');
+        const token = tokenEl ? (tokenEl.value || '') : '';
+        const base1 = 'https://api.postex.pk/services/integration/api/order/v1/track-order';
+        const base2 = 'https://api-services.postex.pk/api/order/v1/track-order';
+        const tryDirect = (base) => fetch(`${base}/${encodeURIComponent(p_id)}`, {
+          method: 'GET', headers: { 'Accept': 'application/json', 'token': token }
+        });
+        return tryDirect(base1)
+          .then(async r => {
+            if (!r.ok) throw new Error('primary failed');
+            const ct = r.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) throw new Error('primary not json');
+            const data = await r.json();
+            return { ok: true, data };
+          })
+          .catch(() => tryDirect(base2)
+            .then(async r => {
+              const ct = r.headers.get('content-type') || '';
+              if (!r.ok || !ct.includes('application/json')) throw new Error('alt failed');
+              const data = await r.json();
+              return { ok: true, data };
+            }))
+          .then(({ ok, data }) => {
+            if (ok && data) {
+              const html = buildPostexResultsHtml(data);
+              modalContent.innerHTML = html;
+              modalOverlay.classList.add('active');
+              document.body.style.overflow = 'hidden';
+              return;
+            }
+            throw new Error('No data');
+          })
+          .catch(() => {
+            modalContent.innerHTML = `<div class=\"p-4 text-red-600\">Unable to fetch tracking info</div>`;
+            modalOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+          });
+      })
+      .catch(() => {
+        // As a safety net, also attempt direct call here
+        const tokenEl = document.getElementById('postex_token');
+        const token = tokenEl ? (tokenEl.value || '') : '';
+        const base = 'https://api.postex.pk/services/integration/api/order/v1/track-order';
+        fetch(`${base}/${encodeURIComponent(p_id)}`, { method: 'GET', headers: { 'Accept': 'application/json', 'token': token } })
+          .then(async r => {
+            const ct = r.headers.get('content-type') || '';
+            if (!r.ok || !ct.includes('application/json')) throw new Error('failed');
+            const data = await r.json();
+            const html = buildPostexResultsHtml(data);
+            modalContent.innerHTML = html;
+            modalOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+          })
+          .catch(() => {
+            modalContent.innerHTML = `<div class=\"p-4 text-red-600\">Request failed. Please ensure you are logged in and try again.</div>`;
+            modalOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+          });
+      });
     return;
   }
 

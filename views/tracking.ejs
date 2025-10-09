@@ -5,6 +5,8 @@
 <script type="module" src="/js/script.js" defer></script>
 
 <body class="bg-white">
+    <!-- Expose PostEx token for client-side fallback (mirrors create-order usage) -->
+    <input type="hidden" id="postex_token" value="<%= (process && process.env && (process.env.POSTEX_API_TOKEN || process.env.POSTEX_TOKEN)) || '' %>">
     <% if (user.role==='admin' ) { %>
     <div class="min-h-screen flex">
       <!-- Sidebar -->

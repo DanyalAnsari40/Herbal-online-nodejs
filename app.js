@@ -379,6 +379,56 @@ app.post('/api/track/tcs', isAuthenticated, async (req, res) => {
 });
 // ===== End TCS Tracking Proxy =====
 
+// ===== PostEx Tracking Proxy =====
+// Docs: GET https://api.postex.pk/services/integration/api/order/v1/track-order/{trackingNumber}
+// or https://api-services.postex.pk/api/order/v1/track-order/{trackingNumber}
+// Header: token: <POSTEX_API_TOKEN>
+const POSTEX_URL_TRACK = (process.env.POSTEX_URL_TRACK || 'https://api-services.postex.pk/api/order/v1/track-order').replace(/\/?$/, '');
+app.post('/api/track/postex', isAuthenticated, async (req, res) => {
+  try {
+    const token = (process.env.POSTEX_API_TOKEN || process.env.POSTEX_TOKEN || '').trim();
+    const trackingNumber = (req.body?.trackingNumber || '').toString().trim();
+    if (!token) return res.status(500).json({ status: 0, error: 1, message: 'POSTEX_API_TOKEN missing on server' });
+    if (!trackingNumber) return res.status(400).json({ status: 0, error: 1, message: 'trackingNumber is required' });
+
+    const primaryUrl = `${POSTEX_URL_TRACK}/${encodeURIComponent(trackingNumber)}`;
+    const altBase = 'https://api.postex.pk/services/integration/api/order/v1/track-order';
+    const altUrl = `${altBase}/${encodeURIComponent(trackingNumber)}`;
+
+    async function tryFetch(url, headers) {
+      const r = await fetch(url, { method: 'GET', headers });
+      const p = await parseJsonSafe(r);
+      return { r, p };
+    }
+
+    // Try token header (as per docs)
+    let { r, p } = await tryFetch(primaryUrl, { 'Accept': 'application/json', token });
+    if (!r.ok) {
+      // Try Bearer auth
+      ({ r, p } = await tryFetch(primaryUrl, { 'Accept': 'application/json', Authorization: `Bearer ${token}` }));
+    }
+    if (!r.ok) {
+      // Try alternate base with token header
+      ({ r, p } = await tryFetch(altUrl, { 'Accept': 'application/json', token }));
+    }
+    if (!r.ok) {
+      // Try alternate base with Bearer
+      ({ r, p } = await tryFetch(altUrl, { 'Accept': 'application/json', Authorization: `Bearer ${token}` }));
+    }
+
+    res.type('application/json');
+    if (!r.ok) {
+      try { console.error('[PostEx track] upstream error', { status: r.status, url: r.url, body: p?.data || p }); } catch(_) {}
+      return res.status(r.status).json(p.ok ? p.data : (p.data || { message: 'PostEx upstream error' }));
+    }
+    return res.status(200).json(p.ok ? p.data : p.data);
+  } catch (e) {
+    console.error('PostEx track error:', e?.message || e);
+    return res.status(500).json({ status: 0, error: 1, message: 'PostEx tracking failed' });
+  }
+});
+// ===== End PostEx Tracking Proxy =====
+
 // Book Packet
 app.post('/api/leopards/bookPacket', isAuthenticated, async (req, res) => {
   try {
