@@ -717,7 +717,7 @@ const validateProduct = (req, res, next) => {
 // Routes
 //!!!!!!!! added by danyal
 // admin/tracking
-app.get('/admin/tracking', isAuthenticated, hasPermission('employee-management'), (req, res) => {
+app.get('/admin/tracking', isAuthenticated, hasPermission('track-product'), (req, res) => {
   res.render('tracking', {
     user: req.session.user,
     currentRoute: 'tracking'
@@ -1685,7 +1685,7 @@ app.get('/admin/product-management', isAuthenticated, hasPermission('product-man
   }
 });
 // Route to add new product with validation
-app.post('/admin/product-management', isAuthenticated, hasPermission('employee-management'), validateProduct, async (req, res) => {
+app.post('/admin/product-management', isAuthenticated, hasPermission('product-management'), validateProduct, async (req, res) => {
   try {
     const { name, price, costPrice, stock } = req.body;
 
