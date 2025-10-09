@@ -1,115 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin – Finance Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
+<%- include('partials/modern-styles', { pageTitle: 'Finance' }) %>
 
 <body class="bg-white font-sans">
   <div class="min-h-screen flex flex-col">
  <% if (user.role==='admin' ) { %>
     <div class="min-h-screen flex">
       <!-- Sidebar -->
-      <aside id="sidebar"
-        class="w-64 transition-all duration-300 bg-gradient-to-b from-green-700 to-indigo-800 text-white flex flex-col p-6 space-y-6">
-        <div class="flex flex-col items-center space-y-3">
-          <div
-            class="profile-pic-container w-24 h-24 rounded-full overflow-hidden border-2 border-white transition-all duration-300">
-            <img src="/uploads/<%= user.profilePic || 'default-profile.png' %>" alt="Profile"
-              class="w-full h-full object-cover">
-          </div>
-          <div class="text-center sidebar-text transition-all duration-300">
-            <p class="text-lg font-semibold">
-              <%= user.displayName || 'Name not set' %>
-            </p>
-            <p class="text-sm text-green-100">
-              <%= user.email %>
-            </p>
-            <span class="mt-1 inline-block bg-white/20 rounded-full px-3 py-1 text-xs font-medium">
-              <%= user.role %>
-            </span>
-          </div>
-        </div>
-
-        <nav class="flex flex-col space-y-2">
-          <a href="/admin"
-            class="flex items-center px-4 py-2 rounded hover:bg-white/10 transition <%= currentRoute === 'admin' ? 'bg-white/20 border-l-4 border-white' : '' %>">
-            <i class="fas fa-home w-5 mr-3"></i> <span class="sidebar-text">Dashboard</span>
-          </a>
-          <% if (user.permissions.includes('employee-management')) { %>
-            <a href="/admin/employee-management"
-              class="flex items-center px-4 py-2 rounded hover:bg-white/10 transition <%= currentRoute === 'employee-management' ? 'bg-white/20 border-l-4 border-white' : '' %>">
-              <i class="fas fa-users w-5 mr-3"></i> <span class="sidebar-text">Employees</span>
-            </a>
-            <% } %>
-              <% if (user.permissions.includes('finance')) { %>
-                <a href="/admin/finance"
-                  class="flex items-center px-4 py-2 rounded hover:bg-white/10 transition <%= currentRoute === 'finance' ? 'bg-white/20 border-l-4 border-white' : '' %>">
-                  <i class="fas fa-coins w-5 mr-3"></i> <span class="sidebar-text">Finance</span>
-                </a>
-                <% } %>
-        </nav>
-      </aside>
+      <%- include('partials/modern-sidebar') %>
 
 
       <div class="flex-1 flex flex-col">
-        <!-- Header with toggle -->
-        <header class="bg-gradient-to-r from-green-600 via-green-700 to-indigo-700 text-white shadow-lg">
-          <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <div class="flex items-center space-x-8">
-              <!-- Toggle Button -->
-              <button onclick="toggleSidebar()" class="text-white hover:text-green-200 text-2xl transition">
-                <i class="fas fa-bars"></i>
-              </button>
-
-              <h1 class="text-2xl font-bold">Admin Dashboard</h1>
-              <nav class="flex space-x-4 items-center">
-                <% if (user.permissions.includes('orders')) { %>
-                  <a href="/admin/orders"
-                    class="flex items-center space-x-2 px-3 py-1 rounded hover:bg-white/10 transition <%= currentRoute === 'orders' ? 'bg-white/20 font-semibold underline' : '' %>">
-                    <i class="fas fa-shopping-cart w-4"></i><span>Orders</span>
-                  </a>
-                  <% } %>
-                    <% if (user.permissions.includes('create-order')) { %>
-                      <a href="/admin/create-order"
-                        class="flex items-center space-x-2 px-3 py-1 rounded hover:bg-white/10 transition <%= currentRoute === 'create-order' ? 'bg-white/20 font-semibold underline' : '' %>">
-                        <i class="fas fa-plus-circle w-4"></i><span>Create Order</span>
-                      </a>
-                      <% } %>
-                        <% if (user.permissions.includes('track-product')) { %>
-                          <a href="/admin/tracking"
-                            class="flex items-center space-x-2 px-3 py-1 rounded hover:bg-white/10 transition <%= currentRoute === 'tracking' ? 'bg-white/20 font-semibold underline' : '' %>">
-                            <i class="fa-solid fa-truck w-4"></i><span>Tracking</span>
-                          </a>
-                          <% } %>
-                            <% if (user.permissions.includes('product-management')) { %>
-                              <a href="/admin/product-management"
-                                class="flex items-center space-x-2 px-3 py-1 rounded hover:bg-white/10 transition <%= currentRoute === 'product-management' ? 'bg-white/20 font-semibold underline' : '' %>">
-                                <i class="fas fa-boxes w-4"></i><span>Products</span>
-                              </a>
-                              <% } %>
-                                <a href="/admin/attendence"
-                                  class="flex items-center space-x-2 px-3 py-1 rounded hover:bg-white/10 transition <%= currentRoute === 'attendence' ? 'bg-white/20 font-semibold underline' : '' %>">
-                                  <i class="fa-solid fa-clock w-4"></i><span>Attendance</span>
-                                </a>
-              </nav>
-            </div>
-            <div class="flex items-center space-x-4">
-              <button onclick="document.getElementById('profileModal').classList.remove('hidden')"
-                class="text-white hover:text-green-200 text-xl transition">
-                <i class="fas fa-cog"></i>
-              </button>
-              <a href="/logout"
-                class="flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all duration-200 backdrop-blur-sm">
-                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
-              </a>
-            </div>
-          </div>
-        </header>
+        <!-- Header -->
+        <%- include('partials/modern-header', { pageTitle: 'Finance' }) %>
         <% } else { %>
           <!-- Employee header with special style -->
           <header class="bg-gradient-to-r from-green-600 via-green-700 to-indigo-700 text-white shadow-lg">
@@ -117,7 +21,7 @@
               <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-4">
                   <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-white">
-                    <img src="/uploads/<%= user.profilePic || 'default-profile.png' %>" alt="Profile"
+                    <img src="<%= getProfilePicUrlLarge(user.profilePic) %>" alt="Profile"
                       class="w-full h-full object-cover">
                   </div>
                   <div>
@@ -243,7 +147,7 @@
         class="p-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-green-500 transition-all" />
       <div class="flex space-x-2">
         <button type="submit"
-          class="flex-1 bg-gradient-to-r from-green-600 to-indigo-600 text-white p-4 rounded-xl font-semibold hover:from-green-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-transform transform hover:-translate-y-0.5">
+          class="flex-1 bg-[#F29C10] text-white p-4 rounded-xl font-semibold hover:from-green-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-transform transform hover:-translate-y-0.5">
           <i class="fas fa-search mr-2"></i>Apply
         </button>
         <a href="/admin/finance"
@@ -271,7 +175,7 @@
         class="p-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-green-500 transition-all"
         required>
       <button type="submit"
-        class="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+        class="bg-[#F29C10] text-white p-4 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
         <i class="fas fa-check mr-2"></i>Save
       </button>
     </form>

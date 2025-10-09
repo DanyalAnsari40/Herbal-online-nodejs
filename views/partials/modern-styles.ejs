@@ -8,6 +8,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   
   <style>
+    /*
+      Global scale: Set base font-size to 12px (~75% of default 16px) on large screens.
+      This scales Tailwind REM-based utilities consistently across the app.
+      On smaller screens, keep 16px for readability.
+    */
+    html {
+      font-size: 10px; /* 75% scale on desktops */
+    }
+    @media (max-width: 1279px) {
+      html {
+        font-size: 14px; /* reset for tablets/phones */
+      }
+    }
+
     :root {
       --primary-white: #FFFFFF;
       --primary-gray: #E5E5E5;
