@@ -23,6 +23,77 @@ const trackBtn = document.querySelector('.btn-track:not(#trackIdSubmit)');
 //   //   return;
 //   // }
 
+function buildMnpResultsHtml(data) {
+  const arr = Array.isArray(data) ? data : [];
+  const root = arr[0] || {};
+  const detailsList = Array.isArray(root.tracking_Details) ? root.tracking_Details : [];
+  if (detailsList.length === 0) {
+    return `<div class="p-6 text-gray-600">No results found.</div>`;
+  }
+  const t = detailsList[0];
+  const header = `
+    <div class="tracking-header">
+      <h3 class="text-lg font-semibold">Tracking</h3>
+      <div class="route">
+        <i class="fas fa-route"></i>
+        <span>${escapeHtml(t.Origin || 'N/A')} → ${escapeHtml(t.Destination || 'N/A')}</span>
+      </div>
+    </div>`;
+
+  const infoRows = [
+    ['Booking Date', t.BookingDate],
+    ['Service', t.ServiceType],
+    ['Pieces', t.pieces],
+    ['Weight', t.weight],
+    ['Status', t.CNStatus],
+    ['Status ID', t.CNStatusID],
+    ['Shipper', t.Shipper],
+    ['Consignee', t.Consignee]
+  ];
+
+  const infoTable = `
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <tbody>
+          ${infoRows.map(([k,v]) => `
+            <tr class="border-b">
+              <td class="px-3 py-2 font-medium text-gray-700">${escapeHtml(k)}</td>
+              <td class="px-3 py-2 text-gray-800">${escapeHtml(v ?? '—')}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  const steps = Array.isArray(t.Details) ? t.Details : [];
+  const detailTable = steps.length > 0 ? `
+    <div class="mt-6">
+      <h4 class="text-md font-semibold mb-2">Tracking Detail</h4>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="px-3 py-2 text-left">Status</th>
+              <th class="px-3 py-2 text-left">Location</th>
+              <th class="px-3 py-2 text-left">Date/Time</th>
+              <th class="px-3 py-2 text-left">Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${steps.map(d => `
+              <tr class="border-b">
+                <td class="px-3 py-2">${escapeHtml(d.Status || '')}</td>
+                <td class="px-3 py-2">${escapeHtml(d.Location || '')}</td>
+                <td class="px-3 py-2">${escapeHtml(d.DateTime || '')}</td>
+                <td class="px-3 py-2">${escapeHtml(d.Detail || '')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : '';
+
+  return `${header}${infoTable}${detailTable}`;
+}
+
 function buildLeopardsResultsHtml(data) {
   const packets = Array.isArray(data.packet_list) ? data.packet_list : [];
   if (packets.length === 0) {
@@ -291,8 +362,35 @@ function runTracking(pIdOverride) {
     return;
   }
   if (selected_Service === 'M&P') {
-    const trackURL = `https://www.mulphilog.com/tracking/${p_id}?_token=UwsLwRDWIxO81neG7M6saftVOAWm6aXLRRqSLDtU&consignment=${p_id}`;
-    showIframePopup(trackURL);
+    fetch('/api/track/mnp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ consignment: p_id }),
+      credentials: 'same-origin'
+    })
+      .then(async (r) => {
+        const ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) { throw new Error('Not JSON'); }
+        const data = await r.json();
+        return { ok: r.ok, data };
+      })
+      .then(({ ok, data }) => {
+        if (!ok || !data) {
+          modalContent.innerHTML = `<div class="p-4 text-red-600">Unable to fetch tracking info</div>`;
+          modalOverlay.classList.add('active');
+          document.body.style.overflow = 'hidden';
+          return;
+        }
+        const html = buildMnpResultsHtml(data);
+        modalContent.innerHTML = html;
+        modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      })
+      .catch(err => {
+        modalContent.innerHTML = `<div class="p-4 text-red-600">Request failed. Please ensure you are logged in and try again.</div>`;
+        modalOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      });
     return;
   }
   if (selected_Service === 'POSTEX') {
