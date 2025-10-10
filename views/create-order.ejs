@@ -4,112 +4,11 @@
 <%- include('partials/modern-styles', { pageTitle: 'Elite Create Order' }) %>
 
 <body class="bg-white font-inter min-h-screen">
-  <div class="min-h-screen flex flex-col">
-    <% if (user.role==='admin' ) { %>
-      <div class="min-h-screen flex">
-        <%- include('partials/modern-sidebar') %>
+  <div class="min-h-screen flex">
+    <%- include('partials/modern-sidebar') %>
 
-
-        <div class="flex-1 flex flex-col">
-          <%- include('partials/modern-header', { pageTitle: 'Create Order' }) %>
-          <% } else { %>
-            <!-- Employee header with special style -->
-            <header class="bg-gradient-to-r from-green-600 via-green-700 to-indigo-700 text-white shadow-lg">
-              <div class="container mx-auto px-6 py-4">
-                <div class="flex justify-between items-center">
-                  <div class="flex items-center space-x-4">
-                    <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-white">
-                      <img src="/uploads/<%= user.profilePic || 'default-profile.png' %>" alt="Profile"
-                        class="w-full h-full object-cover">
-                    </div>
-                    <div>
-                      <h1
-                        class="text-3xl font-bold bg-gradient-to-r from-white to-green-100 bg-clip-text text-transparent">
-                        Dashboard</h1>
-                      <p class="text-green-100 text-sm flex items-center mt-1">
-                        <i class="fas fa-user-circle mr-2"></i>
-                        Welcome, <%= user.email %>
-                          <span class="ml-2 px-2 py-1 bg-white/20 rounded-full text-xs font-medium">
-                            <%= user.role %>
-                          </span>
-                      </p>
-                    </div>
-                  </div>
-                  <div class="flex items-center space-x-4">
-                    <button onclick="document.getElementById('profileModal').classList.remove('hidden')"
-                      class="text-white hover:text-green-200 text-xl transition">
-                      <i class="fas fa-cog"></i>
-                    </button>
-                    <a href="/logout"
-                      class="flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg transition-all duration-200 backdrop-blur-sm">
-                      <i class="fas fa-sign-out-alt"></i>
-                      <span>Logout</span>
-                    </a>
-                  </div>
-
-                </div>
-
-                <!-- Navigation -->
-                <nav class="mt-6 flex space-x-1">
-                  <a href="/admin"
-                    class="<% if (currentRoute === 'admin') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                  </a>
-
-                  <% if (user.role==='admin' || user.permissions.includes('orders')) { %>
-                    <a href="/admin/orders"
-                      class="<% if (currentRoute === 'orders') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
-                      <i class="fas fa-shopping-cart"></i>
-                      <span>Orders</span>
-                    </a>
-                    <% } %>
-
-                      <% if (user.role==='admin' || user.permissions.includes('create-order')) { %>
-                        <a href="/admin/create-order"
-                          class="<% if (currentRoute === 'create-order') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
-                          <i class="fas fa-plus-circle"></i>
-                          <span>Create Order</span>
-                        </a>
-                        <% } %>
-
-                          <% if (user.role==='admin' || user.permissions.includes('employee-management')) { %>
-                            <a href="/admin/employee-management"
-                              class="<% if (currentRoute === 'employee-management') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
-                              <i class="fas fa-users"></i>
-                              <span>Employee Management</span>
-                            </a>
-                            <% } %>
-
-                              <% if (user.role==='admin' || user.permissions.includes('track-product')) { %>
-                                <a href="/admin/tracking"
-                                  class="<% if (currentRoute === 'tracking') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
-                                  <i class="fa-solid fa-truck"></i>
-                                  <span>Track Product</span>
-                                </a>
-                                <% } %>
-
-                                  <% if (user.role==='admin' || user.permissions.includes('product-management')) { %>
-                                    <a href="/admin/product-management"
-                                      class="<% if (currentRoute === 'product-management') { %>bg-white/20 text-white border-b-2 border-white<% } else { %>text-green-100 hover:text-white hover:bg-white/10<% } %> px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2">
-                                      <i class="fas fa-boxes"></i>
-                                      <span>Product Management</span>
-                                    </a>
-                                    <% } %>
-                                      <% if (user.role==='admin' || user.permissions.includes('finance')) { %>
-                                        <a href="/admin/finance"
-                                          class="<%= currentRoute === 'finance' ? 'bg-white/20 text-white border-b-2 border-white' : 'text-green-100 hover:text-white hover:bg-white/10' %> px-4 py-2 rounded-lg flex items-center space-x-2">
-                                          <i class="fas fa-coins"></i>
-                                          <span>Finance</span>
-                                        </a>
-                                        <% } %>
-
-                </nav>
-
-              </div>
-            </header>
-
-            <% } %>
+    <div class="flex-1 flex flex-col">
+      <%- include('partials/modern-header', { pageTitle: 'Create Order' }) %>
 
 
               <!-- Modern Main Content -->
@@ -406,9 +305,11 @@
                   <p class="text-sm"> 2025 Admin Panel. All rights reserved. | Secure • Reliable • Efficient</p>
                 </div>
               </footer>
-        </div>
-        <!--!  -->
-        <!-- TRACKING ID MODAL -->
+      </main>
+    </div>
+  </div>
+  
+  <!-- TRACKING ID MODAL -->
         <div id="trackingIdModal"
           class="modal-overlay hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
           <div class="bg-white rounded-xl w-full max-w-md shadow-lg p-6 relative">
