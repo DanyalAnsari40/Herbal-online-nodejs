@@ -85,21 +85,33 @@
       <% } %>
     </form>
 
-    <!-- Handle Tabs: All / Unhandled / Handled -->
-    <div class="w-full flex flex-wrap items-center space-x-2 mt-3">
-      <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=<%= selectedStatus || '' %>"
-         class="px-4 py-2 rounded-full font-medium shadow transition border <%= !selectedHandle ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100' %>">
-        All Orders
-      </a>
-      <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=<%= selectedStatus || '' %>&handle=Unhandled"
-         class="px-4 py-2 rounded-full font-medium shadow transition border <%= selectedHandle==='Unhandled' ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200' %>">
-        Unhandled
-      </a>
-      <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=<%= selectedStatus || '' %>&handle=Handled"
-         class="px-4 py-2 rounded-full font-medium shadow transition border <%= selectedHandle==='Handled' ? 'bg-green-600 text-white border-green-600' : 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' %>">
-        Handled
-      </a>
-    </div>
+  <!-- Handle Tabs: All / Unhandled / Handled -->
+  <div class="w-full flex flex-nowrap items-center space-x-2 mt-3 overflow-x-auto">
+    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>"
+       class="px-4 py-2 rounded-full font-medium shadow transition border <%= !selectedHandle ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100' %>">
+      All Orders
+    </a>
+    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=&handle=Unhandled"
+       class="px-4 py-2 rounded-full font-medium shadow transition border <%= selectedHandle==='Unhandled' ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200' %>">
+      Unhandled
+    </a>
+    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=&handle=Handled"
+       class="px-4 py-2 rounded-full font-medium shadow transition border <%= selectedHandle==='Handled' ? 'bg-green-600 text-white border-green-600' : 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' %>">
+      Handled
+    </a>
+    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=&handle=<%= selectedHandle || '' %>&duplicate=1"
+       class="px-4 py-2 rounded-full font-medium shadow transition border <%= duplicate ? 'bg-purple-600 text-white border-purple-600' : 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200' %>">
+      Duplicate order
+    </a>
+    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=&handle=<%= selectedHandle || '' %>&dayPending=1"
+       class="px-4 py-2 rounded-full font-medium shadow transition border <%= dayPending ? 'bg-orange-500 text-white border-orange-500' : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200' %>">
+      Day pending
+    </a>
+    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Answered&handle=<%= selectedHandle || '' %>"
+       class="px-4 py-2 rounded-full font-medium shadow transition border <%= selectedStatus==='Answered' ? 'bg-green-600 text-white border-green-600' : 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' %>">
+      Confirm order
+    </a>
+  </div>
 
     <!-- Call Status Buttons -->
     <div class="w-full flex justify-start items-center space-x-2 mt-4 md:mt-2 mb-2">

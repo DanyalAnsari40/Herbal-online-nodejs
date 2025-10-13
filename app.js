@@ -961,35 +961,31 @@ app.get('/admin', isAuthenticated, async (req, res) => {
           { callStatus: "Pending" }
         ]
       });
-      createOrderCount = await Order.countDocuments(); // total orders created
-
+      createOrderCount = await Order.countDocuments();
       totalDispatchedOrders = await Order.countDocuments({
         $or: [
           { trackingId: { $exists: true, $ne: "", $nin: ["Order Returned"] } },
           { pickupMethod: "office", trackingId: { $ne: "Order Returned" } }
         ]
-      }); // total dispatched orders excluding returned
-
+      });
       employeeCount = await Employee.countDocuments();
       products = await Product.find();
       finances = await Finance.find();
       totalRevenue = finances.reduce((sum, f) => sum + (f.revenue || 0), 0);
       totalCost = finances.reduce((sum, f) => sum + (f.cost || 0), 0);
       profit = totalRevenue - totalCost;
-
     } else {
       // For employees
       createOrderCount = await Order.countDocuments({
         handledBy: req.session.user.id
-      }); // total orders created by this employee
-
+      });
       totalDispatchedOrders = await Order.countDocuments({
         handledBy: req.session.user.id,
         $or: [
           { trackingId: { $exists: true, $ne: "", $nin: ["Order Returned"] } },
           { pickupMethod: "office", trackingId: { $ne: "Order Returned" } }
         ]
-      }); // orders by this employee excluding returned
+      });
     }
 
     res.render('admin', {
@@ -1006,7 +1002,6 @@ app.get('/admin', isAuthenticated, async (req, res) => {
       currentRoute: 'admin',
       user: req.session.user
     });
-
   } catch (err) {
     console.error(err);
     res.render('admin', {
@@ -1026,68 +1021,6 @@ app.get('/admin', isAuthenticated, async (req, res) => {
   }
 });
 
-
-// Profile Management Routes  
-app.post('/admin/profile', isAuthenticated, cloudinaryUpload.single('profilePic'), async (req, res) => {
-  try {
-    const { displayName } = req.body;
-    const userId = req.session.user._id || req.session.user.id;
-    
-    console.log('Profile update attempt for user:', userId);
-    console.log('Session user:', req.session.user);
-
-    // Find the user
-    const user = await Employee.findById(userId);
-    if (!user) {
-      console.log('User not found with ID:', userId);
-      return res.redirect('/admin?error=User not found');
-    }
-    
-    console.log('User found:', user.email);
-
-    // Update display name if provided
-    if (displayName && displayName.trim()) {
-      user.displayName = displayName.trim();
-    }
-
-    // Handle profile picture upload
-    if (req.file) {
-      console.log('File uploaded:', req.file);
-      console.log('Public ID:', req.file.public_id);
-      console.log('Filename:', req.file.filename);
-      
-      // Delete old profile picture from Cloudinary if it exists
-      if (user.profilePic) {
-        console.log('Deleting old profile pic:', user.profilePic);
-        await deleteProfilePicture(user.profilePic);
-      }
-      
-      // Save new profile picture URL (use filename if public_id is undefined)
-      user.profilePic = req.file.public_id || req.file.filename;
-      console.log('New profile pic set:', user.profilePic);
-    }
-
-    // Save user updates
-    await user.save();
-
-    // Update session with new user data
-    req.session.user.displayName = user.displayName;
-    req.session.user.profilePic = user.profilePic;
-    
-    // Save session explicitly
-    req.session.save((err) => {
-      if (err) {
-        console.error('Session save error:', err);
-      }
-      res.redirect('/admin?success=Profile updated successfully');
-    });
-  } catch (error) {
-    console.error('Profile update error:', error);
-    res.redirect('/admin?error=Failed to update profile');
-  }
-});
-
-// Admin Orders
 app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, res) => {
   try {
     const pageSize = 10;
@@ -1097,6 +1030,8 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
     const query = {};
     const search = req.query.search || "";
     const selectedDate = req.query.date || "";
+    const duplicate = req.query.duplicate === '1';
+    const dayPending = req.query.dayPending === '1';
 
     if (search) {
       query.$or = [
@@ -1130,7 +1065,7 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
       }
     }
 
-    // ✅ SAFER HANDLE FILTER
+    // SAFER HANDLE FILTER
     if (req.query.handle === "Unhandled") {
       query.$or = [
         { isInProgress: false },
@@ -1170,6 +1105,49 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
       }
     }
 
+    // Duplicate order: same phone appearing more than once within current filters
+    if (duplicate) {
+      const dups = await LandingOrder.aggregate([
+        { $match: query },
+        { $group: { _id: "$phone", c: { $sum: 1 } } },
+        { $match: { c: { $gt: 1 } } },
+        { $project: { _id: 0, phone: "$_id" } }
+      ]);
+      const phones = dups.map(d => d.phone).filter(Boolean);
+      if (phones.length > 0) {
+        query.phone = { $in: phones };
+      } else {
+        // force no results
+        query._id = null;
+      }
+    }
+
+    // Day pending: Pending (or unset) created before today
+    if (dayPending) {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      // ensure createdAt filter exists
+      query.createdAt = query.createdAt || {};
+      query.createdAt.$lt = todayStart;
+      // emulate Pending semantics (include missing/empty)
+      if (query.$or && Array.isArray(query.$or)) {
+        // append additional pending variants but avoid duplicating whole $or if it already contains callStatus
+        query.$or.push(
+          { callStatus: { $exists: false } },
+          { callStatus: '' },
+          { callStatus: null },
+          { callStatus: 'Pending' }
+        );
+      } else if (!query.callStatus) {
+        query.$or = [
+          { callStatus: { $exists: false } },
+          { callStatus: '' },
+          { callStatus: null },
+          { callStatus: 'Pending' }
+        ];
+      }
+    }
+
     const totalOrders = await LandingOrder.countDocuments(query);
     const totalPages = Math.ceil(totalOrders / pageSize);
 
@@ -1190,7 +1168,9 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
       search,
       currentPage,
       totalPages,
-      mix // pass mix to EJS
+      mix, // pass mix to EJS
+      duplicate,
+      dayPending
     });
   } catch (err) {
     console.error(err);
