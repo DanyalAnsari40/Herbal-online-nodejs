@@ -249,7 +249,7 @@ const employeeSchema = new mongoose.Schema({
   displayName: { type: String },
   profilePic: { type: String },
   //! Changes made by Danyal
-  permissions: [{ type: String, enum: ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance'] }],
+  permissions: [{ type: String, enum: ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance', 'call-operator'] }],
   createdAt: { type: Date, default: Date.now },
 });
 const Employee = mongoose.model('Employee', employeeSchema);
@@ -295,7 +295,7 @@ const setupAdmin = async () => {
       email: adminEmail,
       password: hashedPassword,
       role: 'admin',
-      permissions: ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance']
+      permissions: ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance', 'call-operator']
     });
     console.log(`✅ Admin user created with email: ${adminEmail}`);
   } else {
@@ -1537,9 +1537,9 @@ app.post('/admin/employee-management', isAuthenticated, hasPermission('employee-
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     //! Changes made by Danyal
-    const employeePermissions = role === 'admin' ? ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance'] :
-      role === 'manager' ? (Array.isArray(permissions) ? permissions : [permissions]).filter(p => ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance'].includes(p)) :
-        (Array.isArray(permissions) ? permissions : [permissions]).filter(p => ['orders', 'create-order', 'track-product', 'product-management', 'finance'].includes(p));
+    const employeePermissions = role === 'admin' ? ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance', 'call-operator'] :
+      role === 'manager' ? (Array.isArray(permissions) ? permissions : [permissions]).filter(p => ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance', 'call-operator'].includes(p)) :
+        (Array.isArray(permissions) ? permissions : [permissions]).filter(p => ['orders', 'create-order', 'track-product', 'product-management', 'finance', 'call-operator'].includes(p));
     const newEmployee = new Employee({
       email,
       password: hashedPassword,
@@ -1591,11 +1591,11 @@ app.post('/admin/employees/edit/:id', isAuthenticated, hasPermission('employee-m
     // calculate permissions based on role
     let allowedPermissions = [];
     if (role === 'admin') {
-      allowedPermissions = ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance'];
+      allowedPermissions = ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance', 'call-operator'];
     } else if (role === 'manager') {
-      allowedPermissions = ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance'];
+      allowedPermissions = ['orders', 'create-order', 'employee-management', 'track-product', 'product-management', 'finance', 'call-operator'];
     } else {
-      allowedPermissions = ['orders', 'create-order', 'track-product', 'product-management', 'finance'];
+      allowedPermissions = ['orders', 'create-order', 'track-product', 'product-management', 'finance', 'call-operator'];
     }
 
     const employeePermissions = allowedPermissions.filter(p => permissions.includes(p));

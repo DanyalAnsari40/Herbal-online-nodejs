@@ -239,6 +239,17 @@
       >
       <label for="finance" class="text-sm text-gray-700 font-medium">Finance</label>
     </div>
+    <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+      <input 
+        type="checkbox" 
+        id="call-operator" 
+        name="permissions" 
+        value="call-operator" 
+        <%= employee.permissions.includes('call-operator') ? 'checked' : '' %> 
+        class="mr-3 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+      >
+      <label for="call-operator" class="text-sm text-gray-700 font-medium">Call Operator</label>
+    </div>
   </div>
 </div>
 
@@ -287,7 +298,8 @@
       document.getElementById('employee-management'),
       document.getElementById('track-product'),
       document.getElementById('product-management'),
-      document.getElementById('finance')
+      document.getElementById('finance'),
+      document.getElementById('call-operator')
     ];
 
     if (role === 'admin') {

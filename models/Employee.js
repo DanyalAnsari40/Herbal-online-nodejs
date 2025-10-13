@@ -19,7 +19,7 @@ const employeeSchema = new mongoose.Schema({
   },
   permissions: [{
     type: String,
-    enum: ['orders', 'create-order', 'employee-management', 'track-product','product-management','finance'],
+    enum: ['orders', 'create-order', 'employee-management', 'track-product','product-management','finance', 'call-operator'],
   }],
     profilePic: {
     type: String, // store filename or URL
