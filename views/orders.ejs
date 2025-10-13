@@ -99,16 +99,12 @@
        class="px-4 py-2 rounded-full font-medium shadow transition border <%= selectedHandle==='Handled' ? 'bg-green-600 text-white border-green-600' : 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' %>">
       Handled
     </a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=&handle=<%= selectedHandle || '' %>&duplicate=1"
-       class="px-4 py-2 rounded-full font-medium shadow transition border <%= duplicate ? 'bg-purple-600 text-white border-purple-600' : 'bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200' %>">
-      Duplicate order
-    </a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=&handle=<%= selectedHandle || '' %>&dayPending=1"
-       class="px-4 py-2 rounded-full font-medium shadow transition border <%= dayPending ? 'bg-orange-500 text-white border-orange-500' : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200' %>">
+    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Day Pending&handle=<%= selectedHandle || '' %>"
+       class="px-4 py-2 rounded-full font-medium shadow transition border <%= selectedStatus==='Day Pending' ? 'bg-orange-500 text-white border-orange-500' : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200' %>">
       Day pending
     </a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Answered&handle=<%= selectedHandle || '' %>"
-       class="px-4 py-2 rounded-full font-medium shadow transition border <%= selectedStatus==='Answered' ? 'bg-green-600 text-white border-green-600' : 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' %>">
+    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Confirmed&handle=<%= selectedHandle || '' %>"
+       class="px-4 py-2 rounded-full font-medium shadow transition border <%= selectedStatus==='Confirmed' ? 'bg-green-600 text-white border-green-600' : 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' %>">
       Confirm order
     </a>
   </div>
@@ -129,6 +125,10 @@
         class="px-4 py-2 rounded-lg font-semibold shadow transition border border-blue-300 <%= selectedStatus==='Not-Attend' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200' %>">Not-Attend</a>
       <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Power Off"
         class="px-4 py-2 rounded-lg font-semibold shadow transition border border-purple-300 <%= selectedStatus==='Power Off' ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200' %>">Power Off</a>
+      <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Day Pending&handle=<%= selectedHandle || '' %>"
+        class="px-4 py-2 rounded-lg font-semibold shadow transition border <%= selectedStatus==='Day Pending' ? 'bg-orange-500 text-white border-orange-500' : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200' %>">
+        Day Pending
+      </a>
       <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=<%= selectedStatus || '' %>&handle=<%= selectedHandle || '' %>&mix=1"
         class="px-4 py-2 rounded-lg font-semibold shadow transition border border-teal-400 <%= mix ? 'bg-teal-500 text-white' : 'bg-teal-100 text-teal-700 hover:bg-teal-200' %>">Mix Order</a>
     </div>
@@ -190,7 +190,7 @@
                     <form action="/admin/orders/add-review" method="POST" class="flex space-x-2">
                       <input type="hidden" name="orderId" value="<%= order._id %>">
                       <input type="text" name="review" value="<%= order.review || '' %>" class="border px-2 py-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-300">
-                      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm">Save</button>
+                      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm shadow">Save</button>
                       <button type="button" @click="edit = false" class="text-red-500 hover:text-red-700">
                         <i class="fas fa-times"></i>
                       </button>
@@ -240,6 +240,14 @@
                     <input type="radio" name="callStatus" value="Power Off" <%= order.callStatus==='Power Off' ? 'checked' : '' %> onchange="this.form.submit()" class="accent-purple-600">
                     <span class="text-purple-700 font-semibold">Power Off</span>
                   </label>
+                  <label class="flex items-center space-x-1 cursor-pointer">
+                    <input type="radio" name="callStatus" value="Day Pending" <%= order.callStatus==='Day Pending' ? 'checked' : '' %> onchange="this.form.submit()" class="accent-orange-600">
+                    <span class="text-orange-700 font-semibold">Day Pending</span>
+                  </label>
+                  <label class="flex items-center space-x-1 cursor-pointer">
+                    <input type="radio" name="callStatus" value="Confirmed" <%= order.callStatus==='Confirmed' ? 'checked' : '' %> onchange="this.form.submit()" class="accent-emerald-600">
+                    <span class="text-emerald-700 font-semibold">Confirmed</span>
+                  </label>
                 </form>
               <% } else { %>
                 <div class="flex items-center space-x-3 text-gray-400 relative group flex-wrap">
@@ -249,6 +257,8 @@
                   <label class="flex items-center space-x-1 cursor-not-allowed"><input type="radio" disabled <%= order.callStatus==='Cancelled' ? 'checked' : '' %>><span>Cancelled</span></label>
                   <label class="flex items-center space-x-1 cursor-not-allowed"><input type="radio" disabled <%= order.callStatus==='Not-Attend' ? 'checked' : '' %>><span>Not-Attend</span></label>
                   <label class="flex items-center space-x-1 cursor-not-allowed"><input type="radio" disabled <%= order.callStatus==='Power Off' ? 'checked' : '' %>><span>Power Off</span></label>
+                  <label class="flex items-center space-x-1 cursor-not-allowed"><input type="radio" disabled <%= order.callStatus==='Day Pending' ? 'checked' : '' %>><span>Day Pending</span></label>
+                  <label class="flex items-center space-x-1 cursor-not-allowed"><input type="radio" disabled <%= order.callStatus==='Confirmed' ? 'checked' : '' %>><span>Confirmed</span></label>
                   <i class="fas fa-ban text-red-400 opacity-0 group-hover:opacity-100 transition duration-200" title="You must handle this order first"></i>
                 </div>
               <% } %>

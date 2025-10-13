@@ -1058,7 +1058,7 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
           { callStatus: null },
           { callStatus: "Pending" }
         );
-      } else if (["Answered", "Declined", "Cancelled", "Not-Attend", "Power Off"].includes(req.query.status)) {
+      } else if (["Answered", "Declined", "Cancelled", "Not-Attend", "Power Off", "Confirmed", "Day Pending"].includes(req.query.status)) {
         query.callStatus = req.query.status;
       } else {
         // fallback: ignore unknown status
@@ -1239,7 +1239,7 @@ app.post('/admin/orders/add-review', isAuthenticated, hasPermission('orders'), a
 });
 app.post('/admin/orders/update-call-status', isAuthenticated, hasPermission('orders'), async (req, res) => {
   const { orderId, callStatus } = req.body;
-  if (!['Answered', 'Declined', 'Pending', 'Cancelled', 'Not-Attend', 'Power Off'].includes(callStatus)) return res.redirect('/admin/orders');
+  if (!['Answered', 'Declined', 'Pending', 'Cancelled', 'Not-Attend', 'Power Off', 'Confirmed', 'Day Pending'].includes(callStatus)) return res.redirect('/admin/orders');
 
   try {
     const order = await LandingOrder.findById(orderId);
@@ -2336,9 +2336,9 @@ app.get('/admin/orders/new-fragment', isAuthenticated, hasPermission('orders'), 
     }
     if (date) {
       const start = new Date(date);
-      start.setHours(0,0,0,0);
+      start.setHours(0, 0, 0, 0);
       const end = new Date(date);
-      end.setHours(23,59,59,999);
+      end.setHours(23, 59, 59, 999);
       query.createdAt = { $gte: start, $lte: end };
     }
     if (status) {
@@ -2346,11 +2346,11 @@ app.get('/admin/orders/new-fragment', isAuthenticated, hasPermission('orders'), 
         query.$or = query.$or || [];
         query.$or.push(
           { callStatus: { $exists: false } },
-          { callStatus: '' },
+          { callStatus: "" },
           { callStatus: null },
-          { callStatus: 'Pending' }
+          { callStatus: "Pending" }
         );
-      } else if (["Answered", "Declined", "Cancelled", "Not-Attend", "Power Off"].includes(status)) {
+      } else if (["Answered", "Declined", "Cancelled", "Not-Attend", "Power Off", "Confirmed", "Day Pending"].includes(status)) {
         query.callStatus = status;
       }
     }
