@@ -694,6 +694,19 @@
               <div class="bg-gray-50 p-4 rounded-lg">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Packet Details</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="md:col-span-3">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Product Name *</label>
+                    <div class="relative">
+                      <input type="text" id="leopards_product_name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" placeholder="Search for products..." autocomplete="off" required>
+                      <input type="hidden" id="leopards_selected_product_id" value="">
+                      <div id="leopards_product_dropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                        <!-- Product options will be populated here -->
+                      </div>
+                    </div>
+                    <div id="leopards_stock_info" class="mt-2 text-sm text-gray-600 hidden">
+                      <span id="leopards_stock_text"></span>
+                    </div>
+                  </div>
                   <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Weight (Grams) *</label>
                     <input type="number" id="booked_packet_weight" required
@@ -1345,8 +1358,23 @@
           }
 
           function closeLeopardsModal() {
-            document.getElementById('leopardsModal').classList.remove('flex');
-            document.getElementById('leopardsModal').classList.add('hidden');
+            const modal = document.getElementById('leopardsModal');
+            if (!modal) return;
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+            
+            // Reset form and clear product selection
+            const form = document.getElementById('leopardsForm');
+            if (form) form.reset();
+            
+            // Clear product selection
+            const productIdInput = document.getElementById('leopards_selected_product_id');
+            const stockInfo = document.getElementById('leopards_stock_info');
+            const dropdown = document.getElementById('leopards_product_dropdown');
+            
+            if (productIdInput) productIdInput.value = '';
+            if (stockInfo) stockInfo.classList.add('hidden');
+            if (dropdown) dropdown.classList.add('hidden');
           }
 
           // Load cities from Leopards API
@@ -2240,6 +2268,110 @@
             });
           })();
 
+          // Product search functionality for Leopards
+          (function initLeopardsProductSearch() {
+            const searchInput = document.getElementById('leopards_product_name');
+            const dropdown = document.getElementById('leopards_product_dropdown');
+            const productIdInput = document.getElementById('leopards_selected_product_id');
+            const stockInfo = document.getElementById('leopards_stock_info');
+            const stockText = document.getElementById('leopards_stock_text');
+            const piecesInput = document.getElementById('booked_packet_no_piece');
+            
+            if (!searchInput || !dropdown || !productIdInput) return;
+            
+            let searchTimeout;
+            let selectedProduct = null;
+            
+            // Search products as user types
+            searchInput.addEventListener('input', function() {
+              const query = this.value.trim();
+              
+              clearTimeout(searchTimeout);
+              
+              if (query.length < 1) {
+                dropdown.classList.add('hidden');
+                productIdInput.value = '';
+                selectedProduct = null;
+                stockInfo.classList.add('hidden');
+                return;
+              }
+              
+              searchTimeout = setTimeout(async () => {
+                try {
+                  const response = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`);
+                  const products = await response.json();
+                  
+                  dropdown.innerHTML = '';
+                  
+                  if (products.length === 0) {
+                    dropdown.innerHTML = '<div class="p-3 text-gray-500">No products found</div>';
+                  } else {
+                    products.forEach(product => {
+                      const div = document.createElement('div');
+                      div.className = 'p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0';
+                      div.innerHTML = `
+                        <div class="font-medium">${product.name}</div>
+                        <div class="text-sm text-gray-600">Stock: ${product.stock} available</div>
+                      `;
+                      div.addEventListener('click', () => selectProduct(product));
+                      dropdown.appendChild(div);
+                    });
+                  }
+                  
+                  dropdown.classList.remove('hidden');
+                } catch (error) {
+                  console.error('Product search error:', error);
+                  dropdown.innerHTML = '<div class="p-3 text-red-500">Error searching products</div>';
+                  dropdown.classList.remove('hidden');
+                }
+              }, 300);
+            });
+            
+            // Select a product
+            function selectProduct(product) {
+              selectedProduct = product;
+              searchInput.value = product.name;
+              productIdInput.value = product._id;
+              dropdown.classList.add('hidden');
+              
+              // Show stock information
+              stockText.textContent = `Available stock: ${product.stock}`;
+              stockInfo.classList.remove('hidden');
+              
+              // Validate pieces against stock
+              validateStock();
+            }
+            
+            // Validate stock when pieces change
+            if (piecesInput) {
+              piecesInput.addEventListener('input', validateStock);
+            }
+            
+            function validateStock() {
+              if (!selectedProduct || !piecesInput) return;
+              
+              const pieces = parseInt(piecesInput.value) || 0;
+              const available = selectedProduct.stock;
+              
+              if (pieces > available) {
+                stockText.textContent = `Insufficient stock! Available: ${available}, Requested: ${pieces}`;
+                stockText.className = 'text-red-600';
+                piecesInput.classList.add('border-red-500');
+              } else {
+                stockText.textContent = `Available stock: ${available}`;
+                stockText.className = 'text-green-600';
+                piecesInput.classList.remove('border-red-500');
+              }
+            }
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+              if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+              }
+            });
+          })();
+
           // Handle TCS form submission
           (function attachTcsSubmit(){
             const form = document.getElementById('tcsForm');
@@ -2494,12 +2626,29 @@
           document.getElementById('leopardsForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
+            // Validate product selection
+            const productId = document.getElementById('leopards_selected_product_id').value;
+            const pieces = parseInt(document.getElementById('booked_packet_no_piece').value) || 0;
+            
+            if (!productId) {
+              if (typeof showToast === 'function') showToast('Please select a product from the dropdown', 'error');
+              return;
+            }
+            
+            if (pieces <= 0) {
+              if (typeof showToast === 'function') showToast('Please enter a valid number of pieces', 'error');
+              return;
+            }
+
             const formData = {
+              // Product information for inventory management
+              productId: productId,
+              booked_packet_no_piece: pieces,
+              // Leopards API fields
               booked_packet_weight: parseInt(document.getElementById('booked_packet_weight').value),
               booked_packet_vol_weight_w: document.getElementById('booked_packet_vol_weight_w').value || '',
               booked_packet_vol_weight_h: document.getElementById('booked_packet_vol_weight_h').value || '',
               booked_packet_vol_weight_l: document.getElementById('booked_packet_vol_weight_l').value || '',
-              booked_packet_no_piece: parseInt(document.getElementById('booked_packet_no_piece').value),
               booked_packet_collect_amount: document.getElementById('booked_packet_collect_amount').value || 0,
               booked_packet_order_id: document.getElementById('booked_packet_order_id').value || '',
               origin_city: document.getElementById('origin_city').value,

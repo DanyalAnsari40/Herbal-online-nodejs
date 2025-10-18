@@ -444,16 +444,97 @@ app.post('/api/track/postex', isAuthenticated, async (req, res) => {
 });
 // ===== End PostEx Tracking Proxy =====
 
-// Book Packet
+// Book Packet with stock validation
 app.post('/api/leopards/bookPacket', isAuthenticated, async (req, res) => {
   try {
     const api_key = process.env.LEOPARDS_API_KEY;
     const api_password = process.env.LEOPARDS_API_PASSWORD;
     if (!api_key || !api_password) return res.status(400).json({ status: 0, error: 1, message: 'Missing Leopards API credentials' });
+    
+    // Extract product info and validate stock
+    const { productId, booked_packet_no_piece } = req.body;
+    if (productId && booked_packet_no_piece) {
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(400).json({ status: 0, error: 1, message: 'Product not found' });
+      }
+      if (product.stock < booked_packet_no_piece) {
+        return res.status(400).json({ status: 0, error: 1, message: `Insufficient stock. Available: ${product.stock}, Requested: ${booked_packet_no_piece}` });
+      }
+      
+      // Reduce stock and create finance record
+      product.stock -= parseInt(booked_packet_no_piece);
+      await product.save();
+      
+      await Finance.create({
+        type: 'order',
+        description: `Leopards Order for ${product.name} x${booked_packet_no_piece}`,
+        cost: product.costPrice * booked_packet_no_piece,
+        revenue: product.price * booked_packet_no_piece,
+        date: new Date()
+      });
+      
+      // Create order record with Leopards-specific fields
+      await Order.create({
+        product: productId,
+        customerName: req.body.consignment_name_eng,
+        phone: req.body.consignment_phone,
+        address: req.body.consignment_address,
+        city: req.body.destination_city,
+        quantity: booked_packet_no_piece,
+        service: 'Leopards',
+        handledBy: req.session.user.id,
+        pickupMethod: 'delivery',
+        // Common fields
+        codAmount: req.body.booked_packet_collect_amount || 0,
+        weightInKg: (req.body.booked_packet_weight || 0) / 1000, // Convert grams to kg
+        pieces: booked_packet_no_piece,
+        contentDescription: product.name,
+        email: req.body.consignment_email,
+        // Leopards-specific fields
+        shipmentType: req.body.shipment_type,
+        specialInstructions: req.body.special_instructions,
+        shipmentId: req.body.shipment_id,
+        originCity: req.body.origin_city,
+        destinationCity: req.body.destination_city,
+        isVpc: req.body.is_vpc === '1'
+      });
+    }
+    
     const url = LCS_URL_BOOK;
-    const payload = { ...req.body, api_key, api_password };
+    // Remove our custom fields that Leopards API doesn't need, but keep booked_packet_no_piece
+    const leopardsPayload = { ...req.body };
+    delete leopardsPayload.productId; // Only remove productId, keep booked_packet_no_piece for Leopards API
+    
+    const payload = { ...leopardsPayload, api_key, api_password };
     const upstream = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
     const parsed = await parseJsonSafe(upstream);
+    
+    // If Leopards booking was successful and we have product info, update the order with tracking details
+    if (upstream.ok && productId && booked_packet_no_piece) {
+      try {
+        const order = await Order.findOne({
+          product: productId,
+          handledBy: req.session.user.id,
+          service: 'Leopards'
+        }).sort({ createdAt: -1 });
+        
+        if (order && parsed.data) {
+          // Leopards API response structure may vary, adapt as needed
+          const trackingId = parsed.data.trackingNumber || parsed.data.consignmentNo || parsed.data.orderReferenceId;
+          if (trackingId) {
+            order.trackingId = trackingId;
+            order.leopardsTrackingId = trackingId;
+            order.leopardsBookingData = parsed.data; // Store complete response
+            await order.save();
+          }
+        }
+      } catch (updateErr) {
+        console.error('Error updating Leopards order with tracking:', updateErr);
+        // Don't fail the response, just log the error
+      }
+    }
+    
     res.type('application/json');
     return res.status(upstream.ok ? 200 : upstream.status).json(parsed.ok ? parsed.data : parsed.data);
   } catch (e) {
