@@ -179,27 +179,57 @@ app.use((req, res, next) => {
 
 // MongoDB connection (only when a valid URI is provided)
 const isValidMongoUri = (u) => typeof u === 'string' && (u.startsWith('mongodb://') || u.startsWith('mongodb+srv://'));
+
+// Initialize database connection promise
+let dbConnectionPromise = null;
+
+// Configure mongoose globally
+mongoose.set('bufferCommands', false);
+
 if (isValidMongoUri(MONGO_URI)) {
   console.log('[BOOT] Connecting to MongoDB...');
-  mongoose.connect(MONGO_URI, {
-    connectTimeoutMS: 30000, // 30 seconds
-    socketTimeoutMS: 30000,  // 30 seconds
-    serverSelectionTimeoutMS: 60000, // 60 seconds for server selection
-  }).then(async () => {
-    console.log('MongoDB connected');
+  
+  // Create connection promise for better handling
+  dbConnectionPromise = mongoose.connect(MONGO_URI, {
+    connectTimeoutMS: 10000, // Reduced to 10 seconds
+    socketTimeoutMS: 10000,  // Reduced to 10 seconds
+    serverSelectionTimeoutMS: 5000, // Reduced to 5 seconds for faster startup
+    maxPoolSize: 10 // Maintain up to 10 socket connections
+  });
+
+  dbConnectionPromise.then(async () => {
+    console.log('✅ MongoDB connected successfully');
     isDbReady = true;
     try {
       await setupAdmin();
+      console.log('✅ Admin setup completed');
     } catch (e) {
-      console.warn('setupAdmin failed:', e?.message || e);
+      console.warn('⚠️ setupAdmin failed:', e?.message || e);
     }
   }).catch(err => {
     isDbReady = false;
-    console.error('MongoDB connection error:', err);
+    console.error('❌ MongoDB connection error:', err);
   });
+
+  // Handle connection events
+  mongoose.connection.on('connected', () => {
+    console.log('🔗 MongoDB connection established');
+    isDbReady = true;
+  });
+
   mongoose.connection.on('disconnected', () => {
     isDbReady = false;
-    console.warn('[DB] Disconnected');
+    console.warn('⚠️ MongoDB disconnected');
+  });
+
+  mongoose.connection.on('error', (err) => {
+    isDbReady = false;
+    console.error('❌ MongoDB connection error:', err);
+  });
+
+  mongoose.connection.on('reconnected', () => {
+    console.log('🔄 MongoDB reconnected');
+    isDbReady = true;
   });
 } else {
   // Disable buffering so operations fail fast instead of hanging indefinitely
@@ -208,7 +238,7 @@ if (isValidMongoUri(MONGO_URI)) {
 }
 
 // Middleware: ensure DB is ready before routes that need DB
-const ensureDbReady = (req, res, next) => {
+const ensureDbReady = async (req, res, next) => {
   if (!isValidMongoUri(MONGO_URI)) {
     console.warn('[DB] Missing/invalid MONGO_URI for', req.method, req.originalUrl);
     if (req.path === '/login' && req.method === 'POST') {
@@ -216,15 +246,43 @@ const ensureDbReady = (req, res, next) => {
     }
     return res.status(503).send('Service Unavailable: database not configured');
   }
-  if (!isDbReady || mongoose.connection.readyState !== 1) {
-    console.warn('[DB] Not ready for', req.method, req.originalUrl);
-    // For login, render login with a friendly message; otherwise 503 JSON
-    if (req.path === '/login' && req.method === 'POST') {
-      return res.status(503).render('login', { message: 'Server database is starting up. Please try again in a moment.' });
-    }
-    return res.status(503).send('Service Unavailable: database not ready');
+
+  // If database is already ready, proceed immediately
+  if (isDbReady && mongoose.connection.readyState === 1) {
+    return next();
   }
-  next();
+
+  // If we have a connection promise and it's still pending, wait for it
+  if (dbConnectionPromise && !isDbReady) {
+    try {
+      console.log('[DB] Waiting for database connection to complete...');
+      await dbConnectionPromise;
+      
+      // Double check the connection is actually ready
+      if (isDbReady && mongoose.connection.readyState === 1) {
+        console.log('[DB] Database ready, proceeding with request');
+        return next();
+      }
+    } catch (error) {
+      console.error('[DB] Connection failed while waiting:', error);
+    }
+  }
+
+  // If we reach here, database is not ready
+  console.warn('[DB] Not ready for', req.method, req.originalUrl, 'readyState:', mongoose.connection.readyState);
+  
+  // For login, render login with a friendly message; otherwise 503 JSON
+  if (req.path === '/login' && req.method === 'POST') {
+    return res.status(503).render('login', { 
+      message: 'Database connection is initializing. Please wait a moment and try again.' 
+    });
+  }
+  
+  return res.status(503).json({ 
+    error: 'Service Unavailable', 
+    message: 'Database not ready',
+    readyState: mongoose.connection.readyState 
+  });
 };
 
 // (Leopards API routes will be inserted below after hasPermission)
