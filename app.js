@@ -12,6 +12,7 @@ const session = require('express-session');
 const path = require('path');
 const MongoStore = require('connect-mongo');
 const multer = require('multer');
+const cors = require('cors');
 // for Finance mangemnet
 const Finance = require('./models/Finance');
 // Use memory storage on Vercel (serverless FS is read-only); disk storage locally
@@ -27,6 +28,20 @@ const LCS_URL_TRACK = process.env.LEOPARDS_URL_TRACK || `${LCS_BASE}/api/trackBo
 
 const LandingOrder = require('./models/Order'); // your simple schema: name, phone, createdAt
 const { Parser } = require('json2csv');
+
+// CORS configuration for landing pages
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow all origins for API endpoints
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
 
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
