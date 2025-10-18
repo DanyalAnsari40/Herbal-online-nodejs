@@ -2,6 +2,41 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>🚀 <%= pageTitle || 'Elite Admin Panel' %></title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="application-name" content="Elite Admin Panel">
+  <meta name="description" content="Comprehensive admin panel for managing orders, products, employees, and courier integrations">
+  <meta name="theme-color" content="#FCA311">
+  <meta name="msapplication-TileColor" content="#FCA311">
+  <meta name="msapplication-navbutton-color" content="#FCA311">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Elite Admin">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  
+  <!-- PWA Icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-128x128.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="/icons/icon-128x128.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="/icons/icon-96x96.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="/icons/icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="/icons/icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="57x57" href="/icons/icon-72x72.png">
+  
+  <!-- Microsoft Tiles -->
+  <meta name="msapplication-TileImage" content="/icons/icon-144x144.png">
+  <meta name="msapplication-square70x70logo" content="/icons/icon-72x72.png">
+  <meta name="msapplication-square150x150logo" content="/icons/icon-152x152.png">
+  <meta name="msapplication-wide310x150logo" content="/icons/icon-384x384.png">
+  <meta name="msapplication-square310x310logo" content="/icons/icon-384x384.png">
+  
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="//unpkg.com/alpinejs" defer></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -201,5 +236,229 @@
     .warning-glow {
       box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
     }
+    
+    /* PWA Install Button Styles */
+    .pwa-install-banner {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: linear-gradient(135deg, #FCA311 0%, #14213D 100%);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      max-width: 320px;
+    }
+    
+    .pwa-install-banner.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    .pwa-install-banner .close-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+    
+    .pwa-install-banner .install-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      margin-top: 12px;
+      width: 100%;
+    }
+    
+    .pwa-install-banner .install-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+    
+    @media (max-width: 768px) {
+      .pwa-install-banner {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+      }
+    }
   </style>
+  
+  <!-- PWA Service Worker Registration -->
+  <script>
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('SW registered: ', registration);
+            
+            // Check for updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New content is available, show update notification
+                  showUpdateNotification();
+                }
+              });
+            });
+          })
+          .catch((registrationError) => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+    
+    // PWA Install Prompt
+    let deferredPrompt;
+    let installBanner = null;
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('PWA install prompt triggered');
+      e.preventDefault();
+      deferredPrompt = e;
+      showInstallBanner();
+    });
+    
+    window.addEventListener('appinstalled', (evt) => {
+      console.log('PWA was installed');
+      hideInstallBanner();
+      showToast('Elite Admin Panel installed successfully! 🎉', 'success');
+    });
+    
+    function showInstallBanner() {
+      if (installBanner) return;
+      
+      installBanner = document.createElement('div');
+      installBanner.className = 'pwa-install-banner';
+      installBanner.innerHTML = `
+        <button class="close-btn" onclick="hideInstallBanner()">×</button>
+        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+          <i class="fas fa-download mr-2"></i>
+          <strong>Install Elite Admin Panel</strong>
+        </div>
+        <p style="margin: 0; font-size: 14px; opacity: 0.9;">
+          Install our app for faster access and offline functionality
+        </p>
+        <button class="install-btn" onclick="installPWA()">
+          <i class="fas fa-plus mr-2"></i>
+          Install App
+        </button>
+      `;
+      
+      document.body.appendChild(installBanner);
+      
+      // Show banner after a short delay
+      setTimeout(() => {
+        installBanner.classList.add('show');
+      }, 1000);
+    }
+    
+    function hideInstallBanner() {
+      if (installBanner) {
+        installBanner.classList.remove('show');
+        setTimeout(() => {
+          if (installBanner && installBanner.parentNode) {
+            installBanner.parentNode.removeChild(installBanner);
+            installBanner = null;
+          }
+        }, 300);
+      }
+    }
+    
+    function installPWA() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+          } else {
+            console.log('User dismissed the install prompt');
+          }
+          deferredPrompt = null;
+          hideInstallBanner();
+        });
+      }
+    }
+    
+    function showUpdateNotification() {
+      if (typeof showToast === 'function') {
+        showToast('New version available! Refresh to update.', 'info');
+      } else {
+        console.log('New version available! Refresh to update.');
+      }
+    }
+    
+    // Toast notification function (if not already defined)
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white max-w-sm transform translate-x-full transition-transform duration-300`;
+      
+      const bgColor = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        warning: 'bg-yellow-500',
+        info: 'bg-blue-500'
+      }[type] || 'bg-blue-500';
+      
+      toast.classList.add(bgColor);
+      toast.innerHTML = `
+        <div class="flex items-center">
+          <span class="flex-1">${message}</span>
+          <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      // Show toast
+      setTimeout(() => {
+        toast.classList.remove('translate-x-full');
+      }, 100);
+      
+      // Auto hide after 5 seconds
+      setTimeout(() => {
+        toast.classList.add('translate-x-full');
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }, 5000);
+    }
+    
+    // Network status monitoring
+    window.addEventListener('online', () => {
+      showToast('Connection restored! 🌐', 'success');
+    });
+    
+    window.addEventListener('offline', () => {
+      showToast('You are now offline. Some features may be limited.', 'warning');
+    });
+  </script>
 </head>

@@ -47,6 +47,32 @@ app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// PWA-specific routes and middleware
+// Serve manifest.json with correct MIME type
+app.get('/manifest.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/manifest+json');
+  res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
+});
+
+// Serve service worker with correct MIME type and no-cache headers
+app.get('/sw.js', (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(path.join(__dirname, 'public', 'sw.js'));
+});
+
+// Serve offline page
+app.get('/offline.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'offline.html'));
+});
+
+// PWA icon generator page (for development)
+app.get('/generate-icons', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'icons', 'generate-icons.html'));
+});
+
 // Import Cloudinary configuration
 const { upload: cloudinaryUpload, deleteProfilePicture, getOptimizedUrl, getProfilePicUrl } = require('./config/cloudinary');
 
