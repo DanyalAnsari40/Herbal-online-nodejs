@@ -1,4 +1,4 @@
-const cloudinary = require('cloudinary');
+const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 
@@ -13,14 +13,9 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'admin-panel/profile-pics', // Folder in Cloudinary
+    folder: 'admin-panel/profile-pics',
     allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
-    transformation: [
-      { width: 300, height: 300, crop: 'fill', gravity: 'face' }, // Resize and crop to 300x300, focusing on face
-      { quality: 'auto:good' } // Optimize quality
-    ],
     public_id: (req, file) => {
-      // Generate unique filename with user ID and timestamp
       const userId = req.session.user?.id || req.session.user?._id || 'unknown';
       const timestamp = Date.now();
       return `profile_${userId}_${timestamp}`;
@@ -48,7 +43,7 @@ const upload = multer({
 const deleteProfilePicture = async (publicId) => {
   try {
     if (publicId) {
-      const result = await cloudinary.v2.uploader.destroy(publicId);
+      const result = await cloudinary.uploader.destroy(publicId);
       console.log('Deleted old profile picture:', result);
       return result;
     }
@@ -59,7 +54,7 @@ const deleteProfilePicture = async (publicId) => {
 
 // Helper function to get optimized URL
 const getOptimizedUrl = (publicId, options = {}) => {
-  if (!publicId) return '/uploads/default-profile.svg'; // fallback to default
+  if (!publicId) return '/uploads/default-profile.svg';
   
   const defaultOptions = {
     width: 150,
@@ -72,7 +67,7 @@ const getOptimizedUrl = (publicId, options = {}) => {
   
   const finalOptions = { ...defaultOptions, ...options };
   
-  return cloudinary.v2.url(publicId, finalOptions);
+  return cloudinary.url(publicId, finalOptions);
 };
 
 // Helper function for different sizes

@@ -776,7 +776,9 @@ app.post('/login', ensureDbReady, (req, res, next) => {
       id: employee._id,
       email: employee.email,
       role: employee.role,
-      permissions: employee.permissions
+      permissions: employee.permissions,
+      displayName: employee.displayName,
+      profilePic: employee.profilePic
     };
     res.redirect('/admin');
   } catch (err) {
@@ -791,15 +793,103 @@ app.get('/logout', (req, res) => {
   res.redirect('/login');
 });
 
-// Landing Page
+// Redirect root to login
 app.get('/', (req, res) => {
-  const message = req.query.success ? 'آرڈ درج ہوگیا ہے' : null;
-  res.render('index', { message });
+  res.redirect('/login');
 });
 
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ ok: true });
+});
+
+// Profile routes
+app.get('/admin/profile', isAuthenticated, async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.session.user.id);
+    console.log('Profile GET - Employee data:', {
+      id: employee._id,
+      email: employee.email,
+      displayName: employee.displayName,
+      profilePic: employee.profilePic,
+      cloudName: process.env.CLOUDINARY_CLOUD_NAME
+    });
+    res.render('profile', {
+      user: req.session.user,
+      employee,
+      currentRoute: 'profile',
+      message: null,
+      cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME
+    });
+  } catch (err) {
+    console.error(err);
+    res.redirect('/admin');
+  }
+});
+
+app.post('/admin/profile', isAuthenticated, (req, res, next) => {
+  cloudinaryUpload.single('profilePic')(req, res, (err) => {
+    if (err) {
+      console.error('Cloudinary upload error:', err);
+      return res.redirect('/admin/profile?error=upload');
+    }
+    next();
+  });
+}, async (req, res) => {
+  try {
+    console.log('Profile update request:', {
+      body: req.body,
+      file: req.file ? { filename: req.file.filename, public_id: req.file.public_id } : null
+    });
+    
+    const { displayName, email } = req.body;
+    const updateData = {};
+    
+    if (displayName && displayName.trim()) {
+      updateData.displayName = validateInput.sanitizeString(displayName);
+    }
+    
+    if (email && validateInput.email(email)) {
+      updateData.email = validateInput.sanitizeString(email).toLowerCase();
+    }
+    
+    if (req.file) {
+      console.log('File object:', req.file);
+      // Delete old profile picture if exists
+      const currentEmployee = await Employee.findById(req.session.user.id);
+      if (currentEmployee && currentEmployee.profilePic) {
+        await deleteProfilePicture(currentEmployee.profilePic);
+      }
+      // Use filename if public_id is not available
+      updateData.profilePic = req.file.public_id || req.file.filename;
+    }
+    
+    console.log('Updating employee with data:', updateData);
+    
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      req.session.user.id, 
+      updateData, 
+      { new: true }
+    );
+    
+    console.log('Employee updated successfully:', updatedEmployee);
+    
+    // Update session with changed data
+    if (updateData.email) {
+      req.session.user.email = updateData.email;
+    }
+    if (updateData.displayName) {
+      req.session.user.displayName = updateData.displayName;
+    }
+    if (updateData.profilePic) {
+      req.session.user.profilePic = updateData.profilePic;
+    }
+    
+    res.redirect('/admin/profile?success=1');
+  } catch (err) {
+    console.error('Profile update error:', err);
+    res.redirect('/admin/profile?error=1');
+  }
 });
 
 // Leopards Tracking Proxy
@@ -835,36 +925,7 @@ app.post('/api/track/leopards', isAuthenticated, async (req, res) => {
     return res.status(500).json({ status: 0, error: 1, message: 'Tracking failed' });
   }
 });
-// Landing page order submission with validation
-app.post('/order', (req, res, next) => {
-  const { name, phone, productName } = req.body;
-  
-  if (!name || name.trim().length < 2) {
-    return res.render('index', { message: 'Name is required (minimum 2 characters)' });
-  }
-  
-  if (!phone || !validateInput.phone(phone)) {
-    return res.render('index', { message: 'Valid phone number is required' });
-  }
-  
-  // Sanitize inputs
-  req.body.name = validateInput.sanitizeString(name);
-  req.body.phone = validateInput.sanitizeString(phone);
-  req.body.productName = productName ? validateInput.sanitizeString(productName) : 'Diabo Control';
-  next();
-}, async (req, res) => {
-  try {
-    const { name, phone, productName } = req.body;
-    if (!name || !phone) {
-      return res.render('index', { message: 'Name and phone are required' });
-    }
-    await LandingOrder.create({ name, phone, productName: productName || 'Diabo Control' });
-    res.redirect('/?success=1');
-  } catch (err) {
-    console.error(err);
-    res.render('index', { message: 'آرڈ درج نہیں ہوا ' });
-  }
-});
+
 
 // 🚀 API Endpoint for Multiple Landing Pages
 // This endpoint can accept orders from any number of landing pages
