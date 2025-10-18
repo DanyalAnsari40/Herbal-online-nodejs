@@ -31,7 +31,7 @@
                       <div class="mb-10 glass rounded-3xl p-8 shadow-2xl">
                         <h2 class="text-4xl font-bold mb-4 gradient-text">✨ Create New Order</h2>
                         <p class="text-lg font-medium" style="color: #14213D;">Add a new customer order with detailed information</p>
-                        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                           <button onclick="openTcsModal()"
                             class="group flex items-center justify-center px-8 py-8 rounded-2xl stats-card shadow-2xl card-hover">
                             <i class="fas fa-shipping-fast mr-3 text-3xl group-hover:scale-110 transition-transform" style="color: #FCA311;"></i>
@@ -51,6 +51,11 @@
                             class="group flex items-center justify-center px-8 py-8 rounded-2xl stats-card shadow-2xl card-hover">
                             <i class="fas fa-plane mr-3 text-3xl group-hover:scale-110 transition-transform" style="color: #FCA311;"></i>
                             <span class="text-xl font-bold" style="color: #14213D;">PostEx</span>
+                          </button>
+                          <button onclick="openLocalModal()"
+                            class="group flex items-center justify-center px-8 py-8 rounded-2xl stats-card shadow-2xl card-hover">
+                            <i class="fas fa-home mr-3 text-3xl group-hover:scale-110 transition-transform" style="color: #FCA311;"></i>
+                            <span class="text-xl font-bold" style="color: #14213D;">Send Locally</span>
                           </button>
                         </div>
                       </div>
@@ -88,6 +93,11 @@
                                 class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm rounded-t-lg transition-all duration-300 hover:bg-white/10"
                                 style="color: #14213D;">
                                 <i class="fas fa-plane mr-2"></i>PostEx
+                              </button>
+                              <button onclick="showTab('local')" id="local-tab"
+                                class="tab-button py-3 px-4 border-b-2 border-transparent font-medium text-sm rounded-t-lg transition-all duration-300 hover:bg-white/10"
+                                style="color: #14213D;">
+                                <i class="fas fa-home mr-2"></i>Local
                               </button>
                             </nav>
                           </div>
@@ -287,6 +297,29 @@
                                     <tr><td class="px-3 py-2" colspan="11">No data</td></tr>
                                   </tbody>
                                 </table>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Local Tab -->
+                          <div id="local-content" class="tab-content hidden">
+                            <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
+                              <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-xl font-semibold text-gray-800">
+                                  <i class="fas fa-home mr-2 text-orange-500"></i>Local Delivery Orders
+                                </h3>
+                                <button onclick="fetchLocalOrders()"
+                                  class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold transition-colors">
+                                  <i class="fas fa-sync-alt mr-2"></i>Refresh Orders
+                                </button>
+                              </div>
+
+                              <!-- Results -->
+                              <div id="local-result" class="overflow-x-auto">
+                                <div class="text-center text-gray-500 py-8">
+                                  <i class="fas fa-database text-4xl mb-3"></i>
+                                  <p>Click "Refresh Orders" to load local delivery orders</p>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1164,6 +1197,110 @@
               <button type="submit" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold shadow-lg transform hover:scale-105 transition-all duration-200">
                 <i class="fas fa-paper-plane mr-2"></i>
                 Create Order
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Local Delivery Modal -->
+      <div id="localModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+              <i class="fas fa-home mr-3 text-orange-600"></i>
+              Send Locally
+            </h2>
+            <button onclick="closeLocalModal()" class="text-gray-500 hover:text-gray-700 text-2xl">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <form id="localForm" class="space-y-6">
+            <!-- Customer Details -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Customer Details</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Customer Name *</label>
+                  <input type="text" id="local_customer_name" required
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Customer Phone (03xxxxxxxxx) *</label>
+                  <input type="tel" id="local_customer_phone" required pattern="03[0-9]{9}"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="03xxxxxxxxx">
+                </div>
+              </div>
+            </div>
+
+            <!-- Delivery Details -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Delivery Details</h3>
+              <div class="grid grid-cols-1 gap-4">
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Delivery Address *</label>
+                  <textarea id="local_delivery_address" required rows="3"
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="Enter complete delivery address"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">City Name *</label>
+                  <input type="text" id="local_city_name" required
+                    class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                </div>
+              </div>
+            </div>
+
+            <!-- Order Details -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h3 class="text-lg font-semibold text-gray-800 mb-4">Order Details</h3>
+              <div class="grid grid-cols-1 gap-4">
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">Items Name *</label>
+                  <div class="relative">
+                    <input type="text" id="local_items_name" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" placeholder="Search for products..." autocomplete="off" required>
+                    <input type="hidden" id="local_selected_product_id" value="">
+                    <div id="local_product_dropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto">
+                      <!-- Product options will be populated here -->
+                    </div>
+                  </div>
+                  <div id="local_stock_info" class="mt-2 text-sm text-gray-600 hidden">
+                    <span id="local_stock_text"></span>
+                  </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
+                  <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Items (Pieces) *</label>
+                    <input type="number" id="local_items_pieces" required min="1"
+                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Transaction Notes</label>
+                <textarea id="local_transaction_notes" rows="3"
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="Any additional notes or instructions"></textarea>
+              </div>
+              <div class="mt-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Deliver via *</label>
+                <input type="text" id="local_deliver_via" required value="Pak post office"
+                  class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-end space-x-4 pt-6">
+              <button type="button" onclick="closeLocalModal()"
+                class="px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-semibold transition-colors">
+                Cancel
+              </button>
+              <button type="submit"
+                class="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white rounded-lg font-semibold shadow-lg transform hover:scale-105 transition-all duration-200">
+                <i class="fas fa-paper-plane mr-2"></i>
+                Create Local Order
               </button>
             </div>
           </form>
@@ -2740,6 +2877,12 @@
                 fetchMnpReport();
               }, 100);
             }
+            if (tabName === 'local') {
+              // Auto-load Local orders when tab is opened
+              setTimeout(() => {
+                fetchLocalOrders();
+              }, 100);
+            }
           }
 
           // Leopards API Integration
@@ -3154,6 +3297,289 @@
             document.getElementById('mnp-year').value = Math.min(2025, Math.max(2017, now.getFullYear()));
             document.getElementById('mnp-month').value = now.getMonth() + 1;
             document.getElementById('mnp-result').innerHTML = '<div class="text-center text-gray-500 py-8"><i class="fas fa-database text-4xl mb-3"></i><p>Set filters and click "Refresh Report" to load M&P QSR data</p></div>';
+          }
+
+          // Product search functionality for Local Items Name
+          (function initLocalProductSearch() {
+            const searchInput = document.getElementById('local_items_name');
+            const dropdown = document.getElementById('local_product_dropdown');
+            const productIdInput = document.getElementById('local_selected_product_id');
+            const stockInfo = document.getElementById('local_stock_info');
+            const stockText = document.getElementById('local_stock_text');
+            const piecesInput = document.getElementById('local_items_pieces');
+            
+            if (!searchInput || !dropdown || !productIdInput) return;
+            
+            let searchTimeout;
+            let selectedProduct = null;
+            
+            // Search products as user types
+            searchInput.addEventListener('input', function() {
+              const query = this.value.trim();
+              
+              clearTimeout(searchTimeout);
+              
+              if (query.length < 1) {
+                dropdown.classList.add('hidden');
+                productIdInput.value = '';
+                selectedProduct = null;
+                stockInfo.classList.add('hidden');
+                return;
+              }
+              
+              searchTimeout = setTimeout(async () => {
+                try {
+                  const response = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`);
+                  const products = await response.json();
+                  
+                  dropdown.innerHTML = '';
+                  
+                  if (products.length === 0) {
+                    dropdown.innerHTML = '<div class="p-3 text-gray-500">No products found</div>';
+                  } else {
+                    products.forEach(product => {
+                      const div = document.createElement('div');
+                      div.className = 'p-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0';
+                      div.innerHTML = `
+                        <div class="font-medium">${product.name}</div>
+                        <div class="text-sm text-gray-600">Stock: ${product.stock} available</div>
+                      `;
+                      div.addEventListener('click', () => selectProduct(product));
+                      dropdown.appendChild(div);
+                    });
+                  }
+                  
+                  dropdown.classList.remove('hidden');
+                } catch (error) {
+                  console.error('Product search error:', error);
+                  dropdown.innerHTML = '<div class="p-3 text-red-500">Error searching products</div>';
+                  dropdown.classList.remove('hidden');
+                }
+              }, 300);
+            });
+            
+            // Select a product
+            function selectProduct(product) {
+              selectedProduct = product;
+              searchInput.value = product.name;
+              productIdInput.value = product._id;
+              dropdown.classList.add('hidden');
+              
+              // Show stock information
+              stockText.textContent = `Available stock: ${product.stock}`;
+              stockInfo.classList.remove('hidden');
+              
+              // Validate pieces against stock
+              validateStock();
+            }
+            
+            // Validate stock when pieces change
+            if (piecesInput) {
+              piecesInput.addEventListener('input', validateStock);
+            }
+            
+            function validateStock() {
+              if (!selectedProduct || !piecesInput) return;
+              
+              const pieces = parseInt(piecesInput.value) || 0;
+              const available = selectedProduct.stock;
+              
+              if (pieces > available) {
+                stockText.textContent = `Insufficient stock! Available: ${available}, Requested: ${pieces}`;
+                stockText.className = 'text-red-600';
+                piecesInput.classList.add('border-red-500');
+              } else {
+                stockText.textContent = `Available stock: ${available}`;
+                stockText.className = 'text-green-600';
+                piecesInput.classList.remove('border-red-500');
+              }
+            }
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+              if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+              }
+            });
+          })();
+
+          // Local Modal Functions
+          function openLocalModal() {
+            document.getElementById('localModal').classList.remove('hidden');
+            document.getElementById('localModal').classList.add('flex');
+          }
+
+          function closeLocalModal() {
+            const modal = document.getElementById('localModal');
+            if (!modal) return;
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+            
+            // Reset form
+            const form = document.getElementById('localForm');
+            if (form) form.reset();
+            
+            // Clear product selection
+            const productIdInput = document.getElementById('local_selected_product_id');
+            const stockInfo = document.getElementById('local_stock_info');
+            const dropdown = document.getElementById('local_product_dropdown');
+            
+            if (productIdInput) productIdInput.value = '';
+            if (stockInfo) stockInfo.classList.add('hidden');
+            if (dropdown) dropdown.classList.add('hidden');
+            
+            // Reset deliver via to default
+            document.getElementById('local_deliver_via').value = 'Pak post office';
+          }
+
+          // Handle Local form submission
+          document.getElementById('localForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            // Validate product selection
+            const productId = document.getElementById('local_selected_product_id').value;
+            const pieces = parseInt(document.getElementById('local_items_pieces').value) || 0;
+            
+            if (!productId) {
+              if (typeof showToast === 'function') showToast('Please select a product from the dropdown', 'error');
+              return;
+            }
+
+            const formData = {
+              customerName: document.getElementById('local_customer_name').value.trim(),
+              customerPhone: document.getElementById('local_customer_phone').value.trim(),
+              deliveryAddress: document.getElementById('local_delivery_address').value.trim(),
+              cityName: document.getElementById('local_city_name').value.trim(),
+              productId: productId,
+              itemsPieces: pieces,
+              transactionNotes: document.getElementById('local_transaction_notes').value.trim(),
+              deliverVia: document.getElementById('local_deliver_via').value.trim()
+            };
+
+            // Validate required fields
+            const missing = [];
+            if (!formData.customerName) missing.push('Customer Name');
+            if (!formData.customerPhone) missing.push('Customer Phone');
+            if (!formData.deliveryAddress) missing.push('Delivery Address');
+            if (!formData.cityName) missing.push('City Name');
+            if (!formData.itemsPieces || formData.itemsPieces <= 0) missing.push('Items (Pieces)');
+            if (!formData.deliverVia) missing.push('Deliver via');
+
+            if (missing.length) {
+              if (typeof showToast === 'function') showToast(`Please fill required fields: ${missing.join(', ')}`, 'error');
+              return;
+            }
+
+            // Validate phone format
+            const phonePattern = /^03[0-9]{9}$/;
+            if (!phonePattern.test(formData.customerPhone)) {
+              if (typeof showToast === 'function') showToast('Please enter a valid phone number (03xxxxxxxxx)', 'error');
+              return;
+            }
+
+            try {
+              const response = await fetch('/api/local/create', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+                credentials: 'same-origin'
+              });
+
+              const result = await response.json();
+
+              if (response.ok && result.success) {
+                if (typeof showToast === 'function') showToast('Local delivery order created successfully!', 'success');
+                closeLocalModal();
+                // Refresh local orders if tab is active
+                if (document.getElementById('local-content').classList.contains('tab-content') && !document.getElementById('local-content').classList.contains('hidden')) {
+                  fetchLocalOrders();
+                }
+              } else {
+                if (typeof showToast === 'function') showToast(result.message || 'Error creating local order', 'error');
+              }
+            } catch (error) {
+              console.error('Error submitting local order:', error);
+              if (typeof showToast === 'function') showToast('Error submitting order. Please try again.', 'error');
+            }
+          });
+
+          // Fetch Local Orders
+          async function fetchLocalOrders() {
+            const resultDiv = document.getElementById('local-result');
+            resultDiv.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-orange-500 mb-3"></i><p>Loading local orders...</p></div>';
+
+            try {
+              const response = await fetch('/api/local/orders', {
+                method: 'GET',
+                credentials: 'same-origin'
+              });
+
+              const result = await response.json();
+
+              if (response.ok && result.success) {
+                displayLocalOrders(result.orders);
+              } else {
+                resultDiv.innerHTML = `<div class="text-center text-red-500 py-8"><i class="fas fa-exclamation-triangle text-4xl mb-3"></i><p>Error loading orders: ${result.message || 'Unknown error'}</p></div>`;
+              }
+            } catch (error) {
+              console.error('Error fetching local orders:', error);
+              resultDiv.innerHTML = '<div class="text-center text-red-500 py-8"><i class="fas fa-exclamation-triangle text-4xl mb-3"></i><p>Network error loading orders</p></div>';
+            }
+          }
+
+          // Display Local Orders
+          function displayLocalOrders(orders) {
+            const resultDiv = document.getElementById('local-result');
+
+            if (!orders || orders.length === 0) {
+              resultDiv.innerHTML = '<div class="text-center text-gray-500 py-8"><i class="fas fa-inbox text-4xl mb-3"></i><p>No local delivery orders found</p></div>';
+              return;
+            }
+
+            const tableHtml = `
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-100 text-gray-700">
+                    <tr>
+                      <th class="px-3 py-2 text-left">Order ID</th>
+                      <th class="px-3 py-2 text-left">Customer</th>
+                      <th class="px-3 py-2 text-left">Phone</th>
+                      <th class="px-3 py-2 text-left">City</th>
+                      <th class="px-3 py-2 text-left">Address</th>
+                      <th class="px-3 py-2 text-left">Product</th>
+                      <th class="px-3 py-2 text-left">Pieces</th>
+                      <th class="px-3 py-2 text-left">Deliver Via</th>
+                      <th class="px-3 py-2 text-left">Date</th>
+                      <th class="px-3 py-2 text-left">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${orders.map(order => `
+                      <tr class="border-b hover:bg-gray-50">
+                        <td class="px-3 py-2 font-mono text-xs">${order._id}</td>
+                        <td class="px-3 py-2">${order.customerName}</td>
+                        <td class="px-3 py-2">${order.customerPhone}</td>
+                        <td class="px-3 py-2">${order.cityName}</td>
+                        <td class="px-3 py-2 max-w-xs truncate" title="${order.deliveryAddress}">${order.deliveryAddress}</td>
+                        <td class="px-3 py-2">${order.productName || 'Local Delivery'}</td>
+                        <td class="px-3 py-2">${order.itemsPieces}</td>
+                        <td class="px-3 py-2">${order.deliverVia}</td>
+                        <td class="px-3 py-2">${new Date(order.createdAt).toLocaleDateString()}</td>
+                        <td class="px-3 py-2">
+                          <span class="px-2 py-1 text-xs rounded-full bg-orange-100 text-orange-800">
+                            ${order.status || 'Pending'}
+                          </span>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `;
+
+            resultDiv.innerHTML = tableHtml;
           }
 
           // Initialize first tab as active

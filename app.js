@@ -2577,6 +2577,159 @@ app.get('/admin/orders/new-fragment', isAuthenticated, hasPermission('orders'), 
 });
 
 // --- Global error handler ---
+// Local Delivery API Endpoints
+app.post('/api/local/create', isAuthenticated, async (req, res) => {
+  try {
+    const {
+      customerName,
+      customerPhone,
+      deliveryAddress,
+      cityName,
+      productId,
+      itemsPieces,
+      transactionNotes,
+      deliverVia
+    } = req.body;
+
+    // Validate required fields
+    if (!customerName || !customerPhone || !deliveryAddress || !cityName || !itemsPieces || !deliverVia) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    // Validate phone format
+    const phonePattern = /^03[0-9]{9}$/;
+    if (!phonePattern.test(customerPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number format. Use 03xxxxxxxxx'
+      });
+    }
+
+    let product = null;
+    let productName = 'Local Delivery';
+
+    // Handle product validation and stock deduction if product is selected
+    if (productId && itemsPieces) {
+      product = await Product.findById(productId);
+      if (!product) {
+        return res.status(400).json({
+          success: false,
+          message: 'Product not found'
+        });
+      }
+      if (product.stock < itemsPieces) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock. Available: ${product.stock}, Requested: ${itemsPieces}`
+        });
+      }
+      
+      // Reduce stock
+      product.stock -= parseInt(itemsPieces);
+      await product.save();
+      productName = product.name;
+    }
+
+    // Create local delivery order
+    const localOrder = new Order({
+      customerName,
+      phone: customerPhone,
+      address: deliveryAddress,
+      city: cityName,
+      quantity: itemsPieces,
+      service: 'Local',
+      handledBy: req.session.user.id,
+      pickupMethod: 'delivery',
+      // Product information
+      product: productId || null,
+      contentDescription: productName,
+      // Local-specific fields
+      transactionNotes: transactionNotes || '',
+      deliverVia,
+      status: 'Pending',
+      // Set tracking ID to a local format
+      trackingId: `LOCAL-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
+      createdAt: new Date()
+    });
+
+    await localOrder.save();
+
+    // Create finance record
+    const cost = product ? (product.costPrice * itemsPieces) : 0;
+    const revenue = product ? (product.price * itemsPieces) : 0;
+    
+    await Finance.create({
+      type: 'order',
+      description: `Local Delivery Order for ${customerName} - ${productName} x${itemsPieces}`,
+      cost: cost,
+      revenue: revenue,
+      date: new Date()
+    });
+
+    res.json({
+      success: true,
+      message: 'Local delivery order created successfully',
+      orderId: localOrder._id,
+      trackingId: localOrder.trackingId
+    });
+
+  } catch (error) {
+    console.error('Local delivery creation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create local delivery order'
+    });
+  }
+});
+
+app.get('/api/local/orders', isAuthenticated, async (req, res) => {
+  try {
+    // Get local delivery orders
+    const query = { service: 'Local' };
+    
+    // If not admin, only show orders handled by current user
+    if (req.session.user.role !== 'admin') {
+      query.handledBy = req.session.user.id;
+    }
+
+    const orders = await Order.find(query)
+      .populate('product', 'name')
+      .sort({ createdAt: -1 })
+      .limit(100); // Limit to last 100 orders
+
+    // Format orders for display
+    const formattedOrders = orders.map(order => ({
+      _id: order._id,
+      customerName: order.customerName,
+      customerPhone: order.phone,
+      deliveryAddress: order.address,
+      cityName: order.city,
+      itemsPieces: order.quantity,
+      productName: order.product ? order.product.name : (order.contentDescription || 'Local Delivery'),
+      transactionNotes: order.transactionNotes || '',
+      deliverVia: order.deliverVia,
+      status: order.status || 'Pending',
+      trackingId: order.trackingId,
+      createdAt: order.createdAt
+    }));
+
+    res.json({
+      success: true,
+      orders: formattedOrders
+    });
+
+  } catch (error) {
+    console.error('Local orders fetch error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch local delivery orders'
+    });
+  }
+});
+
 app.use((err, req, res, next) => {
   console.error('[ERROR] Unhandled error for', req.method, req.originalUrl, err && err.stack ? err.stack : err);
   if (res.headersSent) return next(err);
