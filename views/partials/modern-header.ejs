@@ -16,10 +16,19 @@
           <div>
             <h1 class="text-3xl font-black gradient-text">
               <%= pageTitle || 'Elite Dashboard' %>
+              <span id="pwa-indicator" class="hidden ml-2 px-2 py-1 text-xs font-bold rounded-full bg-orange-500 text-white">PWA</span>
             </h1>
             <p class="text-sm font-medium" style="color: #E5E5E5;">Advanced Business Management</p>
           </div>
         </div>
+      </div>
+      
+      <!-- Center Refresh Button -->
+      <div class="flex-1 flex justify-center">
+        <button onclick="refreshApp()" title="Refresh App"
+          class="group p-3 rounded-xl glass hover:bg-white/20 transition-all duration-300 hover:scale-110">
+          <i class="fas fa-sync-alt text-lg group-hover:rotate-180 transition-transform duration-500"></i>
+        </button>
       </div>
       
       <!-- Enhanced Quick Actions -->

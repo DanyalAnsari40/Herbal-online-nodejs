@@ -460,5 +460,143 @@
     window.addEventListener('offline', () => {
       showToast('You are now offline. Some features may be limited.', 'warning');
     });
+    
+    // PWA Refresh Function
+    function refreshApp() {
+      const refreshBtn = event.target.closest('button');
+      const icon = refreshBtn.querySelector('i');
+      
+      // Add spinning animation
+      icon.classList.add('fa-spin');
+      refreshBtn.disabled = true;
+      
+      // Show loading toast
+      showToast('Refreshing app...', 'info');
+      
+      // Check for service worker updates
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          registrations.forEach(registration => {
+            registration.update();
+          });
+        });
+      }
+      
+      // Perform hard refresh after a short delay
+      setTimeout(() => {
+        // Force reload with cache bypass
+        window.location.reload(true);
+      }, 500);
+    }
+    
+    // Add keyboard shortcut for refresh (Ctrl+R or F5 enhancement)
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
+        e.preventDefault();
+        refreshApp();
+      }
+    });
+    
+    // PWA Detection and Indicator
+    function detectPWAMode() {
+      const pwaIndicator = document.getElementById('pwa-indicator');
+      
+      // Check if running as PWA (standalone mode)
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                          window.navigator.standalone === true ||
+                          document.referrer.includes('android-app://');
+      
+      if (isStandalone) {
+        // Update browser title bar to show PWA branding
+        updatePWATitle();
+        
+        // Show PWA indicator badge
+        if (pwaIndicator) {
+          pwaIndicator.classList.remove('hidden');
+          pwaIndicator.title = 'Running as Progressive Web App';
+          
+          // Add pulse animation for PWA mode
+          pwaIndicator.classList.add('animate-pulse');
+          setTimeout(() => {
+            pwaIndicator.classList.remove('animate-pulse');
+          }, 3000);
+        }
+      }
+    }
+    
+    // Update PWA Title in Browser Tab/Title Bar
+    function updatePWATitle() {
+      const currentTitle = document.title;
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                          window.navigator.standalone === true ||
+                          document.referrer.includes('android-app://');
+      
+      if (isStandalone) {
+        // Add PWA branding to title if not already present
+        if (!currentTitle.includes('📱')) {
+          document.title = '📱 ' + currentTitle + ' - Elite Admin PWA';
+        }
+        
+        // Update favicon for PWA mode
+        updateFaviconForPWA();
+      }
+    }
+    
+    // Update Favicon for PWA Mode
+    function updateFaviconForPWA() {
+      // Create or update favicon link
+      let favicon = document.querySelector('link[rel="icon"]') || 
+                   document.querySelector('link[rel="shortcut icon"]');
+      
+      if (!favicon) {
+        favicon = document.createElement('link');
+        favicon.rel = 'icon';
+        document.head.appendChild(favicon);
+      }
+      
+      // Use PWA icon as favicon
+      favicon.href = '/icons/icon-32x32.png';
+      favicon.type = 'image/png';
+    }
+    
+    // Run PWA detection when page loads
+    window.addEventListener('load', detectPWAMode);
+    
+    // Also run on DOM ready for faster detection
+    document.addEventListener('DOMContentLoaded', detectPWAMode);
+    
+    // Update title when navigating in PWA mode
+    const originalTitle = document.title;
+    
+    // Monitor for title changes and maintain PWA branding
+    const titleObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'childList' && mutation.target.tagName === 'TITLE') {
+          setTimeout(updatePWATitle, 100); // Small delay to ensure title is set
+        }
+      });
+    });
+    
+    // Observe title changes
+    const titleElement = document.querySelector('title');
+    if (titleElement) {
+      titleObserver.observe(titleElement, { childList: true, subtree: true });
+    }
+    
+    // Also observe document head for title changes
+    titleObserver.observe(document.head, { childList: true, subtree: true });
+    
+    // Global function to set PWA-aware page titles
+    window.setPWATitle = function(newTitle) {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                          window.navigator.standalone === true ||
+                          document.referrer.includes('android-app://');
+      
+      if (isStandalone) {
+        document.title = '📱 ' + newTitle + ' - Elite Admin PWA';
+      } else {
+        document.title = '🚀 ' + newTitle;
+      }
+    };
   </script>
 </head>
