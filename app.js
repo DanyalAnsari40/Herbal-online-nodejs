@@ -335,7 +335,11 @@ const orderSchema = new mongoose.Schema({
   orderType: { type: String, default: 'Normal' }, // Order type (Normal, Reverse, Replacement)
   transactionNotes: { type: String }, // Transaction notes
   pickupAddressCode: { type: String }, // Pickup address code
-  storeAddressCode: { type: String } // Store address code
+  storeAddressCode: { type: String }, // Store address code
+  
+  // Local delivery specific fields
+  deliverVia: { type: String }, // Delivery method for local orders
+  status: { type: String, default: 'Pending' } // Order status
 });
 const Order = mongoose.model('Order', orderSchema);
 // module.exports = mongoose.model("LandingOrder", orderSchema);
