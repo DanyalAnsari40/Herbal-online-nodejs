@@ -1,0 +1,87 @@
+name: Deploy to cPanel via FTP
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  deploy:
+    name: Deploy to cPanel
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Create .env file from secrets
+      - name: Create .env file
+        run: |
+          cat << EOF > .env
+          MONGOURI=${{ secrets.MONGOURI }}
+          TCS_BEARER=${{ secrets.TCS_BEARER }}
+          TCS_ACCESS_TOKEN=${{ secrets.TCS_ACCESS_TOKEN }}
+          TCS_URL_CITIES=https://ociconnect.tcscourier.com/ecom/api/setup/citylistbycountry
+          TCS_URL_BOOK=https://ociconnect.tcscourier.com/ecom/api/booking/create
+          TCS_URL_TRACK=https://ociconnect.tcscourier.com/tracking/api/Tracking/GetDynamicTrackDetail
+          POSTEX_API_TOKEN=${{ secrets.POSTEX_API_TOKEN }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          POSTEX_URL_TRACK=https://api-services.postex.pk/api/order/v1/track-order/
+          LEOPARDS_API_KEY=${{ secrets.LEOPARDS_API_KEY }}
+          LEOPARDS_API_PASSWORD=${{ secrets.LEOPARDS_API_PASSWORD }}
+          LEOPARDS_URL_CITIES=https://merchantapistaging.leopardscourier.com/api/getAllCities/format/json/
+          LEOPARDS_URL_BOOK=https://merchantapistaging.leopardscourier.com/api/bookPacket/format/json/
+          LEOPARDS_URL_DETAILS=https://merchantapistaging.leopardscourier.com/api/getShipmentDetailsByOrderID/format/json/
+          LEOPARDS_URL_LAST_STATUS=https://merchantapistaging.leopardscourier.com/api/getBookedPacketLastStatus/format/json/
+          LEOPARDS_URL_TRACK=https://merchantapi.leopardscourier.com/api/trackBookedPacket/format/json
+          MNP_USERNAME=${{ secrets.MNP_USERNAME }}
+          MNP_PASSWORD=${{ secrets.MNP_PASSWORD }}
+          MNP_ACCOUNT_NO=${{ secrets.MNP_ACCOUNT_NO }}
+          MNP_LOCATION_ID=${{ secrets.MNP_LOCATION_ID }}
+          MNP_URL_CITIES=http://mnpcourier.com/mycodapi/api/Branches/Get_Cities
+          MNP_URL_QSR_REPORT=https://mnpcourier.com/mycodapi/api/Reports/QSR_Report
+          MNP_URL_BOOK=http://mnpcourier.com/mycodapi/api/Booking/InsertBookingData
+          ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+          CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
+          CLOUDINARY_URL=${{ secrets.CLOUDINARY_URL }}
+          NODE_ENV=production
+          PORT=${{ secrets.PORT }}
+          LANDING_API_KEY=${{ secrets.LANDING_API_KEY }}
+          EOF
+
+      # Step 5: Deploy to cPanel via FTP
+      - name: FTP Deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./
+          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.idea/**
+            **/.vs/**
+            **/.vscode/**
+            **/node_modules/**
+            .env.local
+            .env.development.local
+            .env.test.local
+            .env.production.local
