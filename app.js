@@ -47,6 +47,18 @@ app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Middleware to prevent caching of dynamic pages (admin routes)
+app.use((req, res, next) => {
+  // Apply no-cache headers to admin and API routes
+  if (req.path.startsWith('/admin') || req.path.startsWith('/api') || req.path === '/' || req.path === '/login') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+  }
+  next();
+});
+
 // PWA-specific routes and middleware
 // Serve manifest.json with correct MIME type
 app.get('/manifest.json', (req, res) => {
@@ -1498,6 +1510,18 @@ app.post('/admin/orders/update-call-status', isAuthenticated, hasPermission('ord
     res.redirect('/admin/orders');
   }
 });
+
+// ✅ Delete order from orders management
+app.post('/admin/orders/delete/:id', isAuthenticated, hasPermission('orders'), async (req, res) => {
+  try {
+    await LandingOrder.findByIdAndDelete(req.params.id);
+    res.redirect('/admin/orders');
+  } catch (err) {
+    console.error('Error deleting order:', err);
+    res.redirect('/admin/orders');
+  }
+});
+
 // Admin Create Order
 app.get('/admin/create-order', isAuthenticated, hasPermission('create-order'), async (req, res) => {
   try {

@@ -1,66 +1,64 @@
 <!-- Modern Professional Header -->
-<header class="glass backdrop-blur-xl text-white shadow-2xl border-b" 
-        style="background: linear-gradient(135deg, #14213D 0%, #1E2A4A 100%); border-color: #FCA311;">
-  <div class="container mx-auto px-8 py-6">
+<header class="bg-white/80 backdrop-blur-xl shadow-sm border-b border-gray-200 sticky top-0 z-30">
+  <div class="px-6 lg:px-10 py-4">
     <div class="flex justify-between items-center">
-      <div class="flex items-center space-x-6">
-        <!-- Enhanced Toggle Button -->
-        <button onclick="toggleSidebar()" class="group p-3 rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-300 hover:scale-110">
-          <i class="fas fa-bars text-xl group-hover:rotate-90 transition-transform duration-300"></i>
+      <div class="flex items-center gap-4">
+        <!-- Toggle Button -->
+        <button onclick="toggleSidebar()" class="group p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all duration-200">
+          <i class="fas fa-bars text-gray-600 text-sm"></i>
         </button>
 
-        <div class="flex items-center space-x-4">
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
-            <i class="fas fa-rocket text-white text-xl"></i>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
+            <i class="fas fa-bolt text-white text-sm"></i>
           </div>
           <div>
-            <h1 class="text-3xl font-black gradient-text">
-              <%= pageTitle || 'Elite Dashboard' %>
-              <span id="pwa-indicator" class="hidden ml-2 px-2 py-1 text-xs font-bold rounded-full bg-orange-500 text-white">PWA</span>
+            <h1 class="text-xl lg:text-2xl font-extrabold text-gray-900 tracking-tight">
+              <%= pageTitle || 'Dashboard' %>
+              <span id="pwa-indicator" class="hidden ml-2 px-2 py-0.5 text-[10px] font-bold rounded-full text-white" style="background: #FCA311;">PWA</span>
             </h1>
-            <p class="text-sm font-medium" style="color: #E5E5E5;">Advanced Business Management</p>
           </div>
         </div>
       </div>
       
-      <!-- Center Refresh Button -->
-      <div class="flex-1 flex justify-center">
+      <!-- Center Refresh -->
+      <div class="hidden md:flex flex-1 justify-center">
         <button onclick="refreshApp()" title="Refresh App"
-          class="group p-3 rounded-xl glass hover:bg-white/20 transition-all duration-300 hover:scale-110">
-          <i class="fas fa-sync-alt text-lg group-hover:rotate-180 transition-transform duration-500"></i>
+          class="group p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all duration-200">
+          <i class="fas fa-sync-alt text-gray-500 text-sm group-hover:rotate-180 transition-transform duration-500"></i>
         </button>
       </div>
       
-      <!-- Enhanced Quick Actions -->
-      <div class="flex items-center space-x-4">
+      <!-- Quick Actions -->
+      <div class="flex items-center gap-3">
         <% if (user.permissions.includes('orders')) { %>
           <a href="/admin/orders"
-            class="group flex items-center space-x-2 px-4 py-2 rounded-xl glass hover:bg-white/20 transition-all duration-300 <%= currentRoute === 'orders' ? 'bg-white/30 shadow-lg' : '' %>">
-            <i class="fas fa-shopping-cart group-hover:scale-110 transition-transform"></i>
-            <span class="font-medium">Orders</span>
+            class="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 <%= currentRoute === 'orders' ? 'bg-gray-900 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>">
+            <i class="fas fa-shopping-cart text-xs"></i>
+            <span>Orders</span>
           </a>
         <% } %>
         
         <% if (user.permissions.includes('create-order')) { %>
           <a href="/admin/create-order"
-            class="group flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl text-white font-bold"
+            class="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all duration-200"
             style="background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);">
-            <i class="fas fa-plus-circle group-hover:rotate-90 transition-transform"></i>
-            <span>Create Order</span>
+            <i class="fas fa-plus text-xs"></i>
+            <span>New Order</span>
           </a>
         <% } %>
         
         <!-- User Actions -->
-        <div class="flex items-center space-x-3 ml-6 pl-6 border-l border-white/20">
+        <div class="flex items-center gap-2 ml-2 pl-4 border-l border-gray-200">
           <button onclick="document.getElementById('profileModal').classList.remove('hidden')"
-            class="group p-3 rounded-xl glass hover:bg-white/20 transition-all duration-300 hover:scale-110">
-            <i class="fas fa-cog text-lg group-hover:rotate-180 transition-transform duration-500"></i>
+            class="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 transition-all duration-200">
+            <i class="fas fa-user text-gray-600 text-sm"></i>
           </button>
           
           <a href="/logout"
-            class="group flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-red-500/80 to-pink-500/80 hover:from-red-600 hover:to-pink-600 transition-all duration-300 shadow-lg hover:shadow-xl">
-            <i class="fas fa-sign-out-alt group-hover:translate-x-1 transition-transform"></i>
-            <span class="font-medium">Logout</span>
+            class="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition-all duration-200">
+            <i class="fas fa-sign-out-alt text-xs"></i>
+            <span class="hidden sm:inline">Logout</span>
           </a>
         </div>
       </div>

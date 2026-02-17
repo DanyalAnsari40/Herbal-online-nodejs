@@ -1,10 +1,8 @@
-const CACHE_NAME = 'elite-admin-v1.0.0';
+const CACHE_NAME = 'elite-admin-v1.0.1';
 const OFFLINE_URL = '/offline.html';
 
-// Assets to cache for offline functionality
+// ONLY cache static assets - NOT dynamic pages
 const STATIC_CACHE_URLS = [
-  '/',
-  '/login',
   '/offline.html',
   '/css/style.css',
   '/js/app.js',
@@ -23,6 +21,32 @@ const STATIC_CACHE_URLS = [
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap'
 ];
+
+// URLs that should NEVER be cached (always fetch from network)
+const NEVER_CACHE_URLS = [
+  '/admin',
+  '/admin/',
+  '/admin/orders',
+  '/admin/create-order',
+  '/admin/products',
+  '/admin/employee',
+  '/admin/settings',
+  '/login',
+  '/'
+];
+
+// Check if URL should skip cache
+function shouldSkipCache(url) {
+  const urlPath = new URL(url).pathname;
+  
+  // Never cache admin pages or API calls
+  if (urlPath.startsWith('/admin')) return true;
+  if (urlPath.startsWith('/api')) return true;
+  if (urlPath === '/' || urlPath === '/login') return true;
+  
+  // Check explicit never-cache list
+  return NEVER_CACHE_URLS.some(path => urlPath === path || urlPath.startsWith(path + '/'));
+}
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
@@ -64,7 +88,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - serve cached content when offline
+// Fetch event - NETWORK FIRST for dynamic content, CACHE FIRST for static assets
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') {
@@ -76,49 +100,76 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const requestUrl = event.request.url;
+
+  // For dynamic content (admin pages, API) - ALWAYS use Network First
+  if (shouldSkipCache(requestUrl)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          return response;
+        })
+        .catch(() => {
+          // Network failed, show offline page for navigation
+          if (event.request.mode === 'navigate') {
+            return caches.match(OFFLINE_URL);
+          }
+          return new Response('Offline', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers({ 'Content-Type': 'text/plain' })
+          });
+        })
+    );
+    return;
+  }
+
+  // For static assets - use Cache First with network fallback
   event.respondWith(
     caches.match(event.request)
       .then((cachedResponse) => {
-        // Return cached version if available
         if (cachedResponse) {
           return cachedResponse;
         }
 
-        // Try to fetch from network
         return fetch(event.request)
           .then((response) => {
-            // Don't cache non-successful responses
-            if (!response || response.status !== 200 || response.type !== 'basic') {
+            if (!response || response.status !== 200) {
               return response;
             }
 
-            // Clone the response for caching
+            // Only cache static assets
             const responseToCache = response.clone();
+            const isStaticAsset = 
+              requestUrl.includes('/css/') ||
+              requestUrl.includes('/js/') ||
+              requestUrl.includes('/icons/') ||
+              requestUrl.includes('/images/') ||
+              requestUrl.includes('.png') ||
+              requestUrl.includes('.jpg') ||
+              requestUrl.includes('.woff') ||
+              requestUrl.includes('.css') ||
+              requestUrl.includes('fonts.googleapis.com') ||
+              requestUrl.includes('cdnjs.cloudflare.com') ||
+              requestUrl.includes('cdn.tailwindcss.com');
 
-            // Cache successful responses for future use
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                // Only cache GET requests for same origin
-                if (event.request.url.startsWith(self.location.origin)) {
+            if (isStaticAsset) {
+              caches.open(CACHE_NAME)
+                .then((cache) => {
                   cache.put(event.request, responseToCache);
-                }
-              });
+                });
+            }
 
             return response;
           })
           .catch(() => {
-            // Network failed, try to serve offline page for navigation requests
             if (event.request.mode === 'navigate') {
               return caches.match(OFFLINE_URL);
             }
-            
-            // For other requests, return a generic offline response
             return new Response('Offline', {
               status: 503,
               statusText: 'Service Unavailable',
-              headers: new Headers({
-                'Content-Type': 'text/plain'
-              })
+              headers: new Headers({ 'Content-Type': 'text/plain' })
             });
           });
       })
@@ -207,5 +258,22 @@ self.addEventListener('message', (event) => {
   
   if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0].postMessage({ version: CACHE_NAME });
+  }
+  
+  // Clear all caches when requested
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          console.log('[SW] Clearing cache:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => {
+      console.log('[SW] All caches cleared');
+      if (event.ports && event.ports[0]) {
+        event.ports[0].postMessage({ success: true });
+      }
+    });
   }
 });
