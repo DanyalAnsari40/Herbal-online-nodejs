@@ -1,4 +1,4 @@
-name: Deploy to cPanel via FTP
+name: Deploy to cPanel via SFTP
 
 on:
   push:
@@ -65,23 +65,14 @@ jobs:
           LANDING_API_KEY=${{ secrets.LANDING_API_KEY }}
           EOF
 
-      # Step 5: Deploy to cPanel via FTP
-      - name: FTP Deploy
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+      # Step 5: Deploy to cPanel via SFTP using rsync over SSH
+      - name: Deploy via SFTP
+        uses: easingthemes/ssh-deploy@v5.1.0
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./
-          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.idea/**
-            **/.vs/**
-            **/.vscode/**
-            **/node_modules/**
-            .env.local
-            .env.development.local
-            .env.test.local
-            .env.production.local
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          REMOTE_HOST: ${{ secrets.SSH_HOST }}
+          REMOTE_USER: ${{ secrets.SSH_USERNAME }}
+          REMOTE_PORT: ${{ secrets.SSH_PORT }}
+          TARGET: ${{ secrets.REMOTE_PATH }}
+          SOURCE: "./"
+          EXCLUDE: ".git*, .idea/, .vs/, .vscode/, node_modules/, .env.local, .env.development.local, .env.test.local, .env.production.local"

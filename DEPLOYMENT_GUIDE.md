@@ -1,6 +1,6 @@
-# CI/CD Deployment Guide - cPanel FTP
+# CI/CD Deployment Guide - cPanel SFTP/SSH
 
-This guide explains how to set up automatic deployment to cPanel using GitHub Actions and FTP.
+This guide explains how to set up automatic deployment to cPanel using GitHub Actions and SFTP/SSH.
 
 ## Overview
 
@@ -8,31 +8,48 @@ The workflow automatically deploys your code to cPanel whenever you push to the 
 
 ## Setup Instructions
 
-### Step 1: Get FTP Credentials from cPanel
+### Step 1: Generate SSH Key Pair
+
+1. Open terminal/PowerShell and run:
+   ```bash
+   ssh-keygen -t rsa -b 4096 -C "github-deploy" -f deploy_key
+   ```
+2. This creates two files:
+   - `deploy_key` (private key) - Keep this secret!
+   - `deploy_key.pub` (public key) - Add to cPanel
+
+### Step 2: Add Public Key to cPanel
 
 1. Log into your cPanel account
-2. Go to **Files** → **FTP Accounts**
-3. Create a new FTP account or use existing credentials
-4. Note down:
-   - **FTP Server/Host**: Usually `ftp.yourdomain.com` or your server IP
-   - **FTP Username**: The full username (e.g., `username@yourdomain.com`)
-   - **FTP Password**: Your FTP password
-   - **Remote Directory**: The path where files should be uploaded (e.g., `/public_html/admin-panel/` or `/home/username/public_html/`)
+2. Go to **Security** → **SSH Access**
+3. Click **Manage SSH Keys** → **Import Key**
+4. Paste the contents of `deploy_key.pub` into the Public Key field
+5. Click **Import**
+6. Back on SSH Keys page, click **Manage** next to the key → **Authorize**
 
-### Step 2: Configure GitHub Secrets
+### Step 3: Get SSH/SFTP Details from cPanel
+
+1. In cPanel, note down:
+   - **Host**: Your server hostname (e.g., `server123.hostingprovider.com` or your domain)
+   - **Username**: Your cPanel username (not email)
+   - **Port**: Usually `22` for SSH (check with your host)
+   - **Remote Path**: Full path to deployment folder (e.g., `/home/username/public_html/admin-panel/`)
+
+### Step 4: Configure GitHub Secrets
 
 1. Go to your GitHub repository
 2. Navigate to **Settings** → **Secrets and variables** → **Actions**
 3. Click **New repository secret** and add each of the following:
 
-#### FTP Credentials (Required)
+#### SSH/SFTP Credentials (Required)
 
 | Secret Name | Description | Example |
 |-------------|-------------|---------|
-| `FTP_SERVER` | Your FTP server hostname | `ftp.yourdomain.com` |
-| `FTP_USERNAME` | FTP username | `admin@yourdomain.com` |
-| `FTP_PASSWORD` | FTP password | `your-ftp-password` |
-| `FTP_REMOTE_DIR` | Remote directory path (must end with `/`) | `/public_html/admin/` |
+| `SSH_PRIVATE_KEY` | Contents of your `deploy_key` file (private key) | `-----BEGIN RSA PRIVATE KEY-----...` |
+| `SSH_HOST` | Your server hostname | `server123.host.com` |
+| `SSH_USERNAME` | cPanel username | `yourusername` |
+| `SSH_PORT` | SSH port (usually 22) | `22` |
+| `REMOTE_PATH` | Full path to deployment folder | `/home/username/public_html/admin/` |
 
 #### Application Secrets (Required)
 
