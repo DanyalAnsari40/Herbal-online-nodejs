@@ -1,65 +1,534 @@
 <!DOCTYPE html>
 <html lang="en">
- <%- include('partials/modern-styles', { pageTitle: 'Login', extraCss: ['/css/style.css'] }) %>
- <body class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-   <div class="min-h-screen flex items-center justify-center px-4">
-    <div class="w-full max-w-md lg:max-w-xl">
-      <!-- Modern Login Form -->
-      <div class="glass p-10 lg:p-12 rounded-3xl shadow-2xl border border-white/20 card-hover">
-        <h2 class="text-2xl lg:text-3xl font-semibold mb-6 text-center text-gray-800">Welcome Back</h2>
-        
-        <% if (message) { %>
-          <div class="mb-6 p-4 text-center rounded-xl shadow-sm border-l-4 bg-red-50 text-red-700 border-red-400">
-            <div class="flex items-center justify-center space-x-2">
-              <i class="fas fa-exclamation-circle"></i>
-              <span class="font-medium"><%= message %></span>
-            </div>
-          </div>
-        <% } %>
+ <%- include('partials/modern-styles', { pageTitle: 'Login', extraCss: [] }) %>
+ <body class="login-page-body">
 
-        <form action="/login" method="POST" class="space-y-6">
-          <div>
-            <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
-              <i class="fas fa-envelope mr-2 text-blue-500"></i>Email Address
-            </label>
-            <input 
-              type="email" 
-              id="email" 
-              name="email" 
-              class="w-full p-4 lg:p-5 modern-input rounded-xl focus:ring-2 focus:ring-cyan-400 transition-all duration-300 text-gray-800 placeholder-gray-500" 
-              placeholder="Enter your email"
-              required
-            >
-          </div>
-          
-          <div>
-            <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
-              <i class="fas fa-lock mr-2 text-blue-500"></i>Password
-            </label>
-            <input 
-              type="password" 
-              id="password" 
-              name="password" 
-              class="w-full p-4 lg:p-5 modern-input rounded-xl focus:ring-2 focus:ring-cyan-400 transition-all duration-300 text-gray-800 placeholder-gray-500" 
-              placeholder="Enter your password"
-              required
-            >
-          </div>
-          
-          <button 
-            type="submit" 
-            class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 lg:p-5 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-          >
-            <i class="fas fa-sign-in-alt mr-2"></i>
-            Sign In
-          </button>
-        </form>
+   <div class="login-wrapper">
+     <!-- Left Branding Panel -->
+     <div class="login-brand-panel">
+       <div class="brand-content">
+         <div class="brand-icon-ring">
+           <i class="fas fa-shield-halved"></i>
+         </div>
+         <h1 class="brand-title">Elite Admin</h1>
+         <p class="brand-subtitle">Powerful management at your fingertips</p>
+         <div class="brand-features">
+           <div class="brand-feature-item">
+             <i class="fas fa-chart-line"></i>
+             <span>Real-time Analytics</span>
+           </div>
+           <div class="brand-feature-item">
+             <i class="fas fa-users-gear"></i>
+             <span>Team Management</span>
+           </div>
+           <div class="brand-feature-item">
+             <i class="fas fa-truck-fast"></i>
+             <span>Order Tracking</span>
+           </div>
+         </div>
+       </div>
+       <!-- Decorative shapes -->
+       <div class="brand-shape brand-shape-1"></div>
+       <div class="brand-shape brand-shape-2"></div>
+       <div class="brand-shape brand-shape-3"></div>
+     </div>
 
-        <!-- Additional Info -->
-       
-      </div>
+     <!-- Right Login Form Panel -->
+     <div class="login-form-panel">
+       <div class="login-form-container">
+         <!-- Mobile logo (visible only on small screens) -->
+         <div class="mobile-brand">
+           <div class="mobile-brand-icon">
+             <i class="fas fa-shield-halved"></i>
+           </div>
+           <span class="mobile-brand-text">Elite Admin</span>
+         </div>
 
-    </div>
-  </div>
-</body>
+         <div class="login-header">
+           <h2 class="login-title">Welcome back</h2>
+           <p class="login-desc">Sign in to your admin account to continue</p>
+         </div>
+
+         <% if (message) { %>
+           <div class="login-alert">
+             <i class="fas fa-circle-exclamation"></i>
+             <span><%= message %></span>
+           </div>
+         <% } %>
+
+         <form action="/login" method="POST" class="login-form" autocomplete="on">
+           <div class="form-group">
+             <label for="email" class="form-label">Email</label>
+             <div class="input-wrapper">
+               <i class="fas fa-envelope input-icon"></i>
+               <input 
+                 type="email" 
+                 id="email" 
+                 name="email" 
+                 class="form-input"
+                 placeholder="you@example.com"
+                 autocomplete="email"
+                 required
+               >
+             </div>
+           </div>
+
+           <div class="form-group">
+             <label for="password" class="form-label">Password</label>
+             <div class="input-wrapper">
+               <i class="fas fa-lock input-icon"></i>
+               <input 
+                 type="password" 
+                 id="password" 
+                 name="password" 
+                 class="form-input"
+                 placeholder="Enter your password"
+                 autocomplete="current-password"
+                 required
+               >
+               <button type="button" class="toggle-pw" onclick="togglePassword()" tabindex="-1" aria-label="Toggle password visibility">
+                 <i id="pw-eye" class="fas fa-eye"></i>
+               </button>
+             </div>
+           </div>
+
+           <button type="submit" class="login-btn" id="loginBtn">
+             <span class="btn-text">Sign In</span>
+             <i class="fas fa-arrow-right btn-arrow"></i>
+           </button>
+         </form>
+
+         <div class="login-footer">
+           <p>&copy; <%= new Date().getFullYear() %> Elite Admin Panel</p>
+         </div>
+       </div>
+     </div>
+   </div>
+
+   <script>
+     function togglePassword() {
+       const pw = document.getElementById('password');
+       const eye = document.getElementById('pw-eye');
+       if (pw.type === 'password') {
+         pw.type = 'text';
+         eye.classList.replace('fa-eye', 'fa-eye-slash');
+       } else {
+         pw.type = 'password';
+         eye.classList.replace('fa-eye-slash', 'fa-eye');
+       }
+     }
+
+     // Simple button loading state on submit
+     document.querySelector('.login-form').addEventListener('submit', function() {
+       const btn = document.getElementById('loginBtn');
+       btn.classList.add('loading');
+       btn.querySelector('.btn-text').textContent = 'Signing in...';
+       btn.querySelector('.btn-arrow').classList.replace('fa-arrow-right', 'fa-spinner');
+       btn.querySelector('.btn-arrow').classList.add('fa-spin');
+       btn.disabled = true;
+     });
+   </script>
+
+   <style>
+     /* ==============================
+        LOGIN PAGE — SCOPED STYLES 
+        ============================== */
+
+     .login-page-body {
+       margin: 0;
+       padding: 0;
+       min-height: 100vh;
+       background: #F9FAFB;
+       font-size: 16px !important;
+     }
+
+     .login-page-body * {
+       box-sizing: border-box;
+     }
+
+     /* --- Layout --- */
+     .login-wrapper {
+       display: flex;
+       min-height: 100vh;
+     }
+
+     /* --- Left Brand Panel --- */
+     .login-brand-panel {
+       flex: 0 0 44%;
+       background: linear-gradient(145deg, #14213D 0%, #1a2d52 50%, #0F1729 100%);
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       position: relative;
+       overflow: hidden;
+       padding: 48px;
+     }
+
+     .brand-content {
+       position: relative;
+       z-index: 2;
+       text-align: center;
+       max-width: 380px;
+     }
+
+     .brand-icon-ring {
+       width: 88px;
+       height: 88px;
+       margin: 0 auto 28px;
+       border-radius: 50%;
+       background: linear-gradient(135deg, #FCA311, #E8940F);
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       font-size: 36px;
+       color: #fff;
+       box-shadow: 0 8px 32px rgba(252, 163, 17, 0.35);
+       animation: float 4s ease-in-out infinite;
+     }
+
+     @keyframes float {
+       0%, 100% { transform: translateY(0); }
+       50% { transform: translateY(-8px); }
+     }
+
+     .brand-title {
+       font-size: 32px;
+       font-weight: 800;
+       color: #fff;
+       margin: 0 0 10px;
+       letter-spacing: -0.5px;
+     }
+
+     .brand-subtitle {
+       font-size: 15px;
+       color: rgba(255,255,255,0.6);
+       margin: 0 0 40px;
+       line-height: 1.5;
+     }
+
+     .brand-features {
+       display: flex;
+       flex-direction: column;
+       gap: 16px;
+     }
+
+     .brand-feature-item {
+       display: flex;
+       align-items: center;
+       gap: 14px;
+       color: rgba(255,255,255,0.75);
+       font-size: 14px;
+       padding: 12px 18px;
+       border-radius: 12px;
+       background: rgba(255,255,255,0.06);
+       border: 1px solid rgba(255,255,255,0.08);
+       transition: all 0.25s ease;
+     }
+
+     .brand-feature-item:hover {
+       background: rgba(252, 163, 17, 0.1);
+       border-color: rgba(252, 163, 17, 0.25);
+       color: #fff;
+     }
+
+     .brand-feature-item i {
+       font-size: 16px;
+       color: #FCA311;
+       width: 20px;
+       text-align: center;
+     }
+
+     /* Decorative shapes */
+     .brand-shape {
+       position: absolute;
+       border-radius: 50%;
+       opacity: 0.07;
+       background: #FCA311;
+     }
+     .brand-shape-1 { width: 300px; height: 300px; top: -80px; right: -80px; }
+     .brand-shape-2 { width: 200px; height: 200px; bottom: -60px; left: -40px; }
+     .brand-shape-3 { width: 120px; height: 120px; bottom: 20%; right: 10%; opacity: 0.04; }
+
+     /* --- Right Form Panel --- */
+     .login-form-panel {
+       flex: 1;
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       padding: 40px 32px;
+       background: #fff;
+     }
+
+     .login-form-container {
+       width: 100%;
+       max-width: 400px;
+     }
+
+     /* Mobile brand */
+     .mobile-brand {
+       display: none;
+       align-items: center;
+       justify-content: center;
+       gap: 10px;
+       margin-bottom: 32px;
+     }
+
+     .mobile-brand-icon {
+       width: 42px;
+       height: 42px;
+       border-radius: 12px;
+       background: linear-gradient(135deg, #FCA311, #E8940F);
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       color: #fff;
+       font-size: 18px;
+     }
+
+     .mobile-brand-text {
+       font-size: 22px;
+       font-weight: 800;
+       color: #14213D;
+     }
+
+     /* Header */
+     .login-header {
+       margin-bottom: 32px;
+     }
+
+     .login-title {
+       font-size: 28px;
+       font-weight: 800;
+       color: #14213D;
+       margin: 0 0 8px;
+       letter-spacing: -0.3px;
+     }
+
+     .login-desc {
+       font-size: 15px;
+       color: #6B7280;
+       margin: 0;
+       line-height: 1.5;
+     }
+
+     /* Alert */
+     .login-alert {
+       display: flex;
+       align-items: center;
+       gap: 10px;
+       padding: 14px 16px;
+       margin-bottom: 24px;
+       border-radius: 12px;
+       background: #FEF2F2;
+       border: 1px solid #FECACA;
+       color: #DC2626;
+       font-size: 14px;
+       font-weight: 500;
+       animation: shake 0.4s ease;
+     }
+
+     @keyframes shake {
+       0%, 100% { transform: translateX(0); }
+       20% { transform: translateX(-6px); }
+       40% { transform: translateX(6px); }
+       60% { transform: translateX(-4px); }
+       80% { transform: translateX(4px); }
+     }
+
+     .login-alert i { font-size: 16px; flex-shrink: 0; }
+
+     /* Form */
+     .login-form {
+       display: flex;
+       flex-direction: column;
+       gap: 22px;
+     }
+
+     .form-group {
+       display: flex;
+       flex-direction: column;
+       gap: 7px;
+     }
+
+     .form-label {
+       font-size: 13px;
+       font-weight: 600;
+       color: #374151;
+       text-transform: uppercase;
+       letter-spacing: 0.5px;
+     }
+
+     .input-wrapper {
+       position: relative;
+       display: flex;
+       align-items: center;
+     }
+
+     .input-icon {
+       position: absolute;
+       left: 16px;
+       font-size: 15px;
+       color: #9CA3AF;
+       pointer-events: none;
+       transition: color 0.2s;
+     }
+
+     .form-input {
+       width: 100%;
+       padding: 14px 16px 14px 46px;
+       border: 2px solid #E5E7EB;
+       border-radius: 12px;
+       font-size: 15px;
+       font-family: 'Inter', sans-serif;
+       color: #1F2937;
+       background: #F9FAFB;
+       transition: all 0.2s ease;
+       outline: none;
+     }
+
+     .form-input::placeholder {
+       color: #9CA3AF;
+     }
+
+     .form-input:focus {
+       border-color: #FCA311;
+       background: #fff;
+       box-shadow: 0 0 0 4px rgba(252, 163, 17, 0.1);
+     }
+
+     .form-input:focus + .input-icon,
+     .input-wrapper:focus-within .input-icon {
+       color: #FCA311;
+     }
+
+     .toggle-pw {
+       position: absolute;
+       right: 14px;
+       background: none;
+       border: none;
+       cursor: pointer;
+       color: #9CA3AF;
+       font-size: 15px;
+       padding: 4px;
+       transition: color 0.2s;
+     }
+
+     .toggle-pw:hover { color: #6B7280; }
+
+     /* Login Button */
+     .login-btn {
+       display: flex;
+       align-items: center;
+       justify-content: center;
+       gap: 10px;
+       width: 100%;
+       padding: 15px;
+       margin-top: 6px;
+       border: none;
+       border-radius: 12px;
+       background: linear-gradient(135deg, #FCA311 0%, #E8940F 100%);
+       color: #fff;
+       font-size: 16px;
+       font-weight: 700;
+       font-family: 'Inter', sans-serif;
+       cursor: pointer;
+       transition: all 0.25s ease;
+       box-shadow: 0 4px 16px rgba(252, 163, 17, 0.3);
+       position: relative;
+       overflow: hidden;
+     }
+
+     .login-btn::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: -100%;
+       width: 100%;
+       height: 100%;
+       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+       transition: left 0.5s;
+     }
+
+     .login-btn:hover::before {
+       left: 100%;
+     }
+
+     .login-btn:hover {
+       transform: translateY(-2px);
+       box-shadow: 0 8px 24px rgba(252, 163, 17, 0.4);
+     }
+
+     .login-btn:active {
+       transform: translateY(0);
+       box-shadow: 0 4px 12px rgba(252, 163, 17, 0.25);
+     }
+
+     .login-btn.loading {
+       opacity: 0.85;
+       pointer-events: none;
+     }
+
+     .btn-arrow {
+       transition: transform 0.2s;
+     }
+
+     .login-btn:hover .btn-arrow {
+       transform: translateX(3px);
+     }
+
+     /* Footer */
+     .login-footer {
+       margin-top: 36px;
+       text-align: center;
+     }
+
+     .login-footer p {
+       font-size: 13px;
+       color: #9CA3AF;
+       margin: 0;
+     }
+
+     /* ==============================
+        RESPONSIVE 
+        ============================== */
+     @media (max-width: 900px) {
+       .login-brand-panel {
+         display: none;
+       }
+
+       .mobile-brand {
+         display: flex;
+       }
+
+       .login-form-panel {
+         padding: 32px 24px;
+       }
+
+       .login-title {
+         font-size: 24px;
+       }
+     }
+
+     @media (max-width: 480px) {
+       .login-form-panel {
+         padding: 24px 18px;
+       }
+
+       .login-form-container {
+         max-width: 100%;
+       }
+
+       .form-input {
+         padding: 12px 14px 12px 42px;
+         font-size: 14px;
+       }
+
+       .login-btn {
+         padding: 14px;
+         font-size: 15px;
+       }
+     }
+   </style>
+
+ </body>
 </html>

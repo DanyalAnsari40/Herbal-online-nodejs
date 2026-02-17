@@ -50,9 +50,12 @@
     <form method="GET" action="/admin/orders"
       class="flex flex-wrap md:flex-nowrap items-center space-y-4 md:space-y-0 md:space-x-4 bg-white p-4 rounded-xl shadow border">
 
+      <!-- Hidden fields to preserve filters the form doesn't have visible inputs for -->
+      <input type="hidden" name="status" value="<%= selectedStatus || '' %>">
+
       <!-- Search -->
       <div class="relative w-full md:w-auto flex-grow">
-        <input type="text" name="search" value="<%= search || '' %>" placeholder="🔍 Search by name or phone..."
+        <input type="text" name="search" value="<%= search || '' %>" placeholder="Search by name or phone..."
           class="w-full p-2 pl-10 border border-gray-300 rounded-xl shadow focus:outline-none focus:ring-2 focus:ring-green-400 transition">
         <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
       </div>
@@ -77,7 +80,7 @@
         </div>
       </div>
 
-      <% if (search || selectedDate || selectedStatus || selectedHandle) { %>
+      <% if (search || selectedDate || selectedStatus || selectedHandle || mix || duplicate || dayPending) { %>
         <a href="/admin/orders"
           class="flex items-center justify-center px-3 py-2 bg-green-100 text-green-700 rounded-xl shadow hover:bg-green-200 transition">
           <i class="fas fa-times mr-2"></i> Clear
@@ -85,46 +88,67 @@
       <% } %>
     </form>
 
+  <%
+    // Build a helper to construct filter URLs — each tab only changes its own param
+    // and preserves all others, so switching tabs always fetches fresh correct data
+    const _s  = encodeURIComponent(search || '');
+    const _d  = encodeURIComponent(selectedDate || '');
+    const _st = encodeURIComponent(selectedStatus || '');
+    const _h  = encodeURIComponent(selectedHandle || '');
+    function filterUrl(overrides) {
+      const p = {
+        search: _s,
+        date: _d,
+        status: overrides.status !== undefined ? encodeURIComponent(overrides.status) : _st,
+        handle: overrides.handle !== undefined ? encodeURIComponent(overrides.handle) : _h,
+      };
+      if (overrides.mix) p.mix = '1';
+      let qs = `?search=${p.search}&date=${p.date}&status=${p.status}&handle=${p.handle}`;
+      if (p.mix) qs += '&mix=1';
+      return qs;
+    }
+  %>
+
   <!-- All Filter Buttons in One Row -->
   <div class="w-full flex flex-nowrap items-center space-x-2 mt-3 mb-2 overflow-x-auto pb-2">
     <!-- Handle Tabs -->
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>"
+    <a href="<%= filterUrl({ handle: '' }) %>"
        class="px-4 py-2 rounded-full font-medium shadow transition border whitespace-nowrap <%= !selectedHandle ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100' %>">
       All Handles
     </a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=&handle=Unhandled"
+    <a href="<%= filterUrl({ handle: 'Unhandled' }) %>"
        class="px-4 py-2 rounded-full font-medium shadow transition border whitespace-nowrap <%= selectedHandle==='Unhandled' ? 'bg-yellow-500 text-white border-yellow-500' : 'bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200' %>">
       Unhandled
     </a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=&handle=Handled"
+    <a href="<%= filterUrl({ handle: 'Handled' }) %>"
        class="px-4 py-2 rounded-full font-medium shadow transition border whitespace-nowrap <%= selectedHandle==='Handled' ? 'bg-green-600 text-white border-green-600' : 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' %>">
       Handled
     </a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Confirmed&handle=<%= selectedHandle || '' %>"
+    <a href="<%= filterUrl({ status: 'Confirmed' }) %>"
        class="px-4 py-2 rounded-full font-medium shadow transition border whitespace-nowrap <%= selectedStatus==='Confirmed' ? 'bg-green-600 text-white border-green-600' : 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200' %>">
       Confirm order
     </a>
     
     <span class="text-gray-300 px-1">|</span>
     
-    <!-- Call Status Buttons -->
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status="
+    <!-- Call Status Buttons — each preserves handle filter -->
+    <a href="<%= filterUrl({ status: '' }) %>"
       class="px-4 py-2 rounded-lg font-semibold shadow transition border border-gray-200 whitespace-nowrap <%= !selectedStatus && !mix ? 'bg-gray-200 text-gray-700' : 'bg-white text-gray-500 hover:bg-gray-100' %>">All Statuses</a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Pending"
+    <a href="<%= filterUrl({ status: 'Pending' }) %>"
       class="px-4 py-2 rounded-lg font-semibold shadow transition border border-yellow-300 whitespace-nowrap <%= selectedStatus==='Pending' ? 'bg-yellow-400 text-white' : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' %>">Pending</a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Answered"
+    <a href="<%= filterUrl({ status: 'Answered' }) %>"
       class="px-4 py-2 rounded-lg font-semibold shadow transition border border-green-300 whitespace-nowrap <%= selectedStatus==='Answered' ? 'bg-green-500 text-white' : 'bg-green-100 text-green-700 hover:bg-green-200' %>">Answered</a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Declined"
+    <a href="<%= filterUrl({ status: 'Declined' }) %>"
       class="px-4 py-2 rounded-lg font-semibold shadow transition border border-red-300 whitespace-nowrap <%= selectedStatus==='Declined' ? 'bg-red-500 text-white' : 'bg-red-100 text-red-700 hover:bg-red-200' %>">Declined</a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Cancelled"
+    <a href="<%= filterUrl({ status: 'Cancelled' }) %>"
       class="px-4 py-2 rounded-lg font-semibold shadow transition border border-gray-400 whitespace-nowrap <%= selectedStatus==='Cancelled' ? 'bg-gray-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' %>">Cancelled</a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Not-Attend"
+    <a href="<%= filterUrl({ status: 'Not-Attend' }) %>"
       class="px-4 py-2 rounded-lg font-semibold shadow transition border border-blue-300 whitespace-nowrap <%= selectedStatus==='Not-Attend' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200' %>">Not-Attend</a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Power Off"
+    <a href="<%= filterUrl({ status: 'Power Off' }) %>"
       class="px-4 py-2 rounded-lg font-semibold shadow transition border border-purple-300 whitespace-nowrap <%= selectedStatus==='Power Off' ? 'bg-purple-500 text-white' : 'bg-purple-100 text-purple-700 hover:bg-purple-200' %>">Power Off</a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=Day Pending&handle=<%= selectedHandle || '' %>"
+    <a href="<%= filterUrl({ status: 'Day Pending' }) %>"
       class="px-4 py-2 rounded-lg font-semibold shadow transition border whitespace-nowrap <%= selectedStatus==='Day Pending' ? 'bg-orange-500 text-white border-orange-500' : 'bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200' %>">Day Pending</a>
-    <a href="?search=<%= search || '' %>&date=<%= selectedDate || '' %>&status=<%= selectedStatus || '' %>&handle=<%= selectedHandle || '' %>&mix=1"
+    <a href="<%= filterUrl({ mix: true }) %>"
       class="px-4 py-2 rounded-lg font-semibold shadow transition border border-teal-400 whitespace-nowrap <%= mix ? 'bg-teal-500 text-white' : 'bg-teal-100 text-teal-700 hover:bg-teal-200' %>">Mix Order</a>
   </div>
 
@@ -277,11 +301,18 @@
 
             <!-- Actions -->
             <td class="py-4 px-6 text-center">
-              <form action="/admin/orders/delete/<%= order._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this order?');">
-                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm shadow transition" title="Delete Order">
-                  <i class="fas fa-trash-alt"></i>
+              <div class="flex items-center justify-center space-x-2">
+                <button type="button" 
+                  onclick="openSendLocallyModal('<%= order.name %>', '<%= order.phone %>', '<%= order.productName || '' %>')"
+                  class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-sm shadow transition flex items-center" title="Send via Post Office">
+                  <i class="fas fa-paper-plane mr-1"></i> Send
                 </button>
-              </form>
+                <form action="/admin/orders/delete/<%= order._id %>" method="POST" onsubmit="return confirm('Are you sure you want to delete this order?');">
+                  <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm shadow transition" title="Delete Order">
+                    <i class="fas fa-trash-alt"></i>
+                  </button>
+                </form>
+              </div>
             </td>
           </tr>
           <% }); %>
@@ -290,35 +321,144 @@
     </div>
 
     <!-- Pagination -->
+    <%
+      // Pagination helper — carries ALL active filters so page changes don't lose context
+      const _pgBase = `search=${_s}&date=${_d}&status=${_st}&handle=${_h}` + (mix ? '&mix=1' : '') + (duplicate ? '&duplicate=1' : '') + (dayPending ? '&dayPending=1' : '');
+      function pageUrl(pg) { return `?page=${pg}&${_pgBase}`; }
+    %>
     <div class="mt-6 flex justify-center items-center space-x-1">
       <% if (currentPage > 1) { %>
-        <a href="?page=<%= currentPage - 1 %>&status=<%= selectedStatus %>&handle=<%= selectedHandle %>"
+        <a href="<%= pageUrl(currentPage - 1) %>"
           class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded shadow transition">Previous</a>
       <% } %>
       <% let startPage = Math.max(1, currentPage - 2); let endPage = Math.min(totalPages, currentPage + 2);
         if (startPage > 1) { %>
-        <a href="?page=1&status=<%= selectedStatus %>&handle=<%= selectedHandle %>"
+        <a href="<%= pageUrl(1) %>"
           class="px-3 py-1 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700">1</a>
         <% if (startPage > 2) { %><span class="px-2">...</span><% } %>
       <% }
         for (let i = startPage; i <= endPage; i++) { %>
-        <a href="?page=<%= i %>&status=<%= selectedStatus %>&handle=<%= selectedHandle %>"
+        <a href="<%= pageUrl(i) %>"
           class="px-3 py-1 rounded-full <%= i === currentPage ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' %>"><%= i %></a>
       <% }
         if (endPage < totalPages) { %>
         <% if (endPage < totalPages - 1) { %><span class="px-2">...</span><% } %>
-        <a href="?page=<%= totalPages %>&status=<%= selectedStatus %>&handle=<%= selectedHandle %>"
+        <a href="<%= pageUrl(totalPages) %>"
           class="px-3 py-1 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700"><%= totalPages %></a>
       <% } %>
       <% if (currentPage < totalPages) { %>
-        <a href="?page=<%= currentPage + 1 %>&status=<%= selectedStatus %>&handle=<%= selectedHandle %>"
+        <a href="<%= pageUrl(currentPage + 1) %>"
           class="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded shadow transition">Next</a>
       <% } %>
     </div>
   <% } %>
 </main>
 
-   
+<!-- Send Locally Modal -->
+<div id="sendLocallyModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" style="display:none;">
+  <div class="bg-white rounded-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl mx-4">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-gray-800 flex items-center">
+        <i class="fas fa-paper-plane mr-3 text-orange-600"></i>
+        Send via Post Office
+      </h2>
+      <button onclick="closeSendLocallyModal()" class="text-gray-500 hover:text-gray-700 text-2xl">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <form id="sendLocallyForm" class="space-y-6">
+      <!-- Customer Details (pre-filled from order) -->
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4"><i class="fas fa-user mr-2 text-blue-500"></i>Customer Details</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Customer Name *</label>
+            <input type="text" id="sl_customer_name" required
+              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Customer Phone (03xxxxxxxxx) *</label>
+            <input type="tel" id="sl_customer_phone" required pattern="03[0-9]{9}"
+              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              placeholder="03xxxxxxxxx">
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery Details -->
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4"><i class="fas fa-map-marker-alt mr-2 text-red-500"></i>Delivery Details</h3>
+        <div class="grid grid-cols-1 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Delivery Address *</label>
+            <textarea id="sl_delivery_address" required rows="3"
+              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              placeholder="Enter complete delivery address"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">City Name *</label>
+            <input type="text" id="sl_city_name" required
+              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Details -->
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4"><i class="fas fa-box mr-2 text-green-500"></i>Order Details</h3>
+        <div class="grid grid-cols-1 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Product *</label>
+            <div class="relative">
+              <input type="text" id="sl_product_search" 
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500" 
+                placeholder="Search for products..." autocomplete="off" required>
+              <input type="hidden" id="sl_selected_product_id" value="">
+              <div id="sl_product_dropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1 hidden max-h-60 overflow-y-auto"></div>
+            </div>
+            <div id="sl_stock_info" class="mt-2 text-sm text-gray-600 hidden">
+              <span id="sl_stock_text"></span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Items (Pieces) *</label>
+            <input type="number" id="sl_items_pieces" required min="1"
+              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              placeholder="Enter quantity">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Transaction Notes</label>
+            <textarea id="sl_transaction_notes" rows="2"
+              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              placeholder="Any additional notes or instructions"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Deliver via *</label>
+            <input type="text" id="sl_deliver_via" required value="Pak post office"
+              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Buttons -->
+      <div class="flex justify-end space-x-4 pt-4">
+        <button type="button" onclick="closeSendLocallyModal()"
+          class="px-6 py-3 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg font-semibold transition-colors">
+          Cancel
+        </button>
+        <button type="submit" id="sl_submit_btn"
+          class="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg font-semibold shadow-lg transform hover:scale-105 transition-all duration-200">
+          <i class="fas fa-paper-plane mr-2"></i>
+          Send via Post Office
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast Container for notifications -->
+<div id="toastContainer" class="fixed top-4 right-4 z-[60] space-y-2"></div>
 
     <!-- Footer -->
     <footer class="bg-gray-900 text-gray-300 py-6 mt-12">
@@ -461,6 +601,184 @@ function toggleSidebar() {
   // Initial quick poll after 2s
   setTimeout(poll, 2000);
 })();
+
+// ============================
+// Send Locally Modal Logic
+// ============================
+function showOrderToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const color = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-700';
+  const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle';
+  const toast = document.createElement('div');
+  toast.className = `${color} text-white px-5 py-3 rounded-xl shadow-lg flex items-center space-x-3 transform translate-x-full transition-transform duration-300`;
+  toast.innerHTML = `<i class="fas ${icon}"></i><span class="font-medium">${message}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => toast.classList.remove('translate-x-full'), 50);
+  setTimeout(() => {
+    toast.classList.add('translate-x-full');
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+function openSendLocallyModal(name, phone, productName) {
+  const modal = document.getElementById('sendLocallyModal');
+  modal.style.display = 'flex';
+  modal.classList.remove('hidden');
+
+  document.getElementById('sl_customer_name').value = name || '';
+  document.getElementById('sl_customer_phone').value = phone || '';
+  document.getElementById('sl_delivery_address').value = '';
+  document.getElementById('sl_city_name').value = '';
+  document.getElementById('sl_items_pieces').value = '1';
+  document.getElementById('sl_transaction_notes').value = '';
+  document.getElementById('sl_deliver_via').value = 'Pak post office';
+  document.getElementById('sl_selected_product_id').value = '';
+  document.getElementById('sl_stock_info').classList.add('hidden');
+  document.getElementById('sl_product_dropdown').classList.add('hidden');
+
+  const searchInput = document.getElementById('sl_product_search');
+  searchInput.value = productName || '';
+
+  // Auto-search for the product if productName is provided
+  if (productName && productName.trim()) {
+    setTimeout(() => searchProducts(productName.trim()), 200);
+  }
+}
+
+function closeSendLocallyModal() {
+  const modal = document.getElementById('sendLocallyModal');
+  modal.style.display = 'none';
+  modal.classList.add('hidden');
+}
+
+// Close modal on backdrop click
+document.getElementById('sendLocallyModal')?.addEventListener('click', function(e) {
+  if (e.target === this) closeSendLocallyModal();
+});
+
+// Product search with debounce
+let slSearchTimeout;
+document.getElementById('sl_product_search')?.addEventListener('input', function() {
+  clearTimeout(slSearchTimeout);
+  const q = this.value.trim();
+  document.getElementById('sl_selected_product_id').value = '';
+  document.getElementById('sl_stock_info').classList.add('hidden');
+
+  if (q.length < 1) {
+    document.getElementById('sl_product_dropdown').classList.add('hidden');
+    return;
+  }
+  slSearchTimeout = setTimeout(() => searchProducts(q), 300);
+});
+
+async function searchProducts(query) {
+  try {
+    const resp = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`, { credentials: 'same-origin' });
+    const products = await resp.json();
+    const dropdown = document.getElementById('sl_product_dropdown');
+
+    if (!products.length) {
+      dropdown.innerHTML = '<div class="p-3 text-gray-500 text-sm">No products found</div>';
+      dropdown.classList.remove('hidden');
+      return;
+    }
+
+    dropdown.innerHTML = products.map(p =>
+      `<div class="px-4 py-3 hover:bg-orange-50 cursor-pointer border-b border-gray-100 transition-colors flex justify-between items-center"
+            onclick="selectProduct('${p._id}', '${p.name.replace(/'/g, "\\'")}', ${p.stock})">
+        <span class="font-medium text-gray-800">${p.name}</span>
+        <span class="text-sm ${p.stock < 10 ? 'text-red-500' : 'text-green-600'}">Stock: ${p.stock}</span>
+      </div>`
+    ).join('');
+    dropdown.classList.remove('hidden');
+  } catch (err) {
+    console.error('Product search error:', err);
+  }
+}
+
+function selectProduct(id, name, stock) {
+  document.getElementById('sl_selected_product_id').value = id;
+  document.getElementById('sl_product_search').value = name;
+  document.getElementById('sl_product_dropdown').classList.add('hidden');
+
+  const stockInfo = document.getElementById('sl_stock_info');
+  const stockText = document.getElementById('sl_stock_text');
+  stockText.innerHTML = `<i class="fas fa-box mr-1"></i> Available stock: <strong class="${stock < 10 ? 'text-red-600' : 'text-green-600'}">${stock}</strong>`;
+  stockInfo.classList.remove('hidden');
+}
+
+// Form submission
+document.getElementById('sendLocallyForm')?.addEventListener('submit', async function(e) {
+  e.preventDefault();
+
+  const productId = document.getElementById('sl_selected_product_id').value;
+  const pieces = parseInt(document.getElementById('sl_items_pieces').value) || 0;
+
+  if (!productId) {
+    showOrderToast('Please select a product from the dropdown', 'error');
+    return;
+  }
+
+  const formData = {
+    customerName: document.getElementById('sl_customer_name').value.trim(),
+    customerPhone: document.getElementById('sl_customer_phone').value.trim(),
+    deliveryAddress: document.getElementById('sl_delivery_address').value.trim(),
+    cityName: document.getElementById('sl_city_name').value.trim(),
+    productId: productId,
+    itemsPieces: pieces,
+    transactionNotes: document.getElementById('sl_transaction_notes').value.trim(),
+    deliverVia: document.getElementById('sl_deliver_via').value.trim()
+  };
+
+  // Validate required fields
+  const missing = [];
+  if (!formData.customerName) missing.push('Customer Name');
+  if (!formData.customerPhone) missing.push('Customer Phone');
+  if (!formData.deliveryAddress) missing.push('Delivery Address');
+  if (!formData.cityName) missing.push('City Name');
+  if (!formData.itemsPieces || formData.itemsPieces <= 0) missing.push('Items (Pieces)');
+  if (!formData.deliverVia) missing.push('Deliver via');
+
+  if (missing.length) {
+    showOrderToast('Please fill: ' + missing.join(', '), 'error');
+    return;
+  }
+
+  // Validate phone format
+  if (!/^03[0-9]{9}$/.test(formData.customerPhone)) {
+    showOrderToast('Please enter a valid phone number (03xxxxxxxxx)', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('sl_submit_btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Sending...';
+
+  try {
+    const response = await fetch('/api/local/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+      credentials: 'same-origin'
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      showOrderToast('Order sent via Post Office successfully!', 'success');
+      closeSendLocallyModal();
+    } else {
+      showOrderToast(result.message || 'Error creating order', 'error');
+    }
+  } catch (error) {
+    console.error('Error submitting local order:', error);
+    showOrderToast('Network error. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Send via Post Office';
+  }
+});
   </script>
 </body>
 

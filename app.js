@@ -1284,67 +1284,79 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
     const currentPage = parseInt(req.query.page) || 1;
     const skip = (currentPage - 1) * pageSize;
 
-    const query = {};
     const search = req.query.search || "";
     const selectedDate = req.query.date || "";
+    const selectedStatus = req.query.status || "";
+    const selectedHandle = req.query.handle || "";
     const duplicate = req.query.duplicate === '1';
     const dayPending = req.query.dayPending === '1';
+    let mix = req.query.mix === '1';
 
+    // Build filters as separate conditions, then combine with $and
+    // This avoids the bug where multiple $or clauses overwrite each other
+    const andConditions = [];
+
+    // Search filter
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } },
-        { productName: { $regex: search, $options: 'i' } }
-      ];
+      andConditions.push({
+        $or: [
+          { name: { $regex: search, $options: 'i' } },
+          { phone: { $regex: search, $options: 'i' } },
+          { productName: { $regex: search, $options: 'i' } }
+        ]
+      });
     }
 
+    // Date filter
     if (selectedDate) {
       const start = new Date(selectedDate);
       start.setHours(0, 0, 0, 0);
       const end = new Date(selectedDate);
       end.setHours(23, 59, 59, 999);
-      query.createdAt = { $gte: start, $lte: end };
+      andConditions.push({ createdAt: { $gte: start, $lte: end } });
     }
 
-    if (req.query.status && req.query.status !== "") {
-      if (req.query.status === "Pending") {
-        query.$or = query.$or || [];
-        query.$or.push(
-          { callStatus: { $exists: false } },
-          { callStatus: "" },
-          { callStatus: null },
-          { callStatus: "Pending" }
-        );
-      } else if (["Answered", "Declined", "Cancelled", "Not-Attend", "Power Off", "Confirmed", "Day Pending"].includes(req.query.status)) {
-        query.callStatus = req.query.status;
-      } else {
-        // fallback: ignore unknown status
+    // Call-status filter
+    if (selectedStatus) {
+      if (selectedStatus === "Pending") {
+        andConditions.push({
+          $or: [
+            { callStatus: { $exists: false } },
+            { callStatus: "" },
+            { callStatus: null },
+            { callStatus: "Pending" }
+          ]
+        });
+      } else if (["Answered", "Declined", "Cancelled", "Not-Attend", "Power Off", "Confirmed", "Day Pending"].includes(selectedStatus)) {
+        andConditions.push({ callStatus: selectedStatus });
       }
     }
 
-    // SAFER HANDLE FILTER
-    if (req.query.handle === "Unhandled") {
-      query.$or = [
-        { isInProgress: false },
-        { isInProgress: { $exists: false } },
-        { isInProgress: null }
-      ];
-    } else if (req.query.handle === "Handled") {
-      query.isInProgress = true;
-      // Show only orders handled by the current user (all roles)
-      query.handledBy = req.session.user.id;
+    // Handle filter
+    if (selectedHandle === "Unhandled") {
+      andConditions.push({
+        $or: [
+          { isInProgress: false },
+          { isInProgress: { $exists: false } },
+          { isInProgress: null }
+        ]
+      });
+    } else if (selectedHandle === "Handled") {
+      andConditions.push({ isInProgress: true });
+      andConditions.push({ handledBy: req.session.user.id });
     }
 
+    // Assemble query
+    let query = andConditions.length > 0 ? { $and: andConditions } : {};
+
     // Mix Order logic
-    let mix = req.query.mix === '1';
     let mixPairs = [];
     if (mix) {
-      // First, find all unique (name, phone) pairs in the current filtered result
       const baseOrders = await LandingOrder.find(query, { name: 1, phone: 1 });
       const seen = new Set();
       mixPairs = baseOrders
         .map(o => `${o.name}||${o.phone}`)
-        .filter((pair, idx, arr) => {
+        .filter(pair => {
           if (seen.has(pair)) return false;
           seen.add(pair);
           return true;
@@ -1353,12 +1365,11 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
           const [name, phone] = pair.split('||');
           return { name, phone };
         });
-      // Now, show all orders that match any of those pairs
       if (mixPairs.length > 0) {
-        query.$or = mixPairs.map(({ name, phone }) => ({ name, phone }));
+        andConditions.push({ $or: mixPairs.map(({ name, phone }) => ({ name, phone })) });
+        query = { $and: andConditions };
       } else {
-        // If no pairs, show nothing
-        query._id = null;
+        query = { _id: null };
       }
     }
 
@@ -1372,10 +1383,10 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
       ]);
       const phones = dups.map(d => d.phone).filter(Boolean);
       if (phones.length > 0) {
-        query.phone = { $in: phones };
+        andConditions.push({ phone: { $in: phones } });
+        query = { $and: andConditions };
       } else {
-        // force no results
-        query._id = null;
+        query = { _id: null };
       }
     }
 
@@ -1383,26 +1394,16 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
     if (dayPending) {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
-      // ensure createdAt filter exists
-      query.createdAt = query.createdAt || {};
-      query.createdAt.$lt = todayStart;
-      // emulate Pending semantics (include missing/empty)
-      if (query.$or && Array.isArray(query.$or)) {
-        // append additional pending variants but avoid duplicating whole $or if it already contains callStatus
-        query.$or.push(
+      andConditions.push({ createdAt: { $lt: todayStart } });
+      andConditions.push({
+        $or: [
           { callStatus: { $exists: false } },
           { callStatus: '' },
           { callStatus: null },
           { callStatus: 'Pending' }
-        );
-      } else if (!query.callStatus) {
-        query.$or = [
-          { callStatus: { $exists: false } },
-          { callStatus: '' },
-          { callStatus: null },
-          { callStatus: 'Pending' }
-        ];
-      }
+        ]
+      });
+      query = { $and: andConditions };
     }
 
     const totalOrders = await LandingOrder.countDocuments(query);
@@ -1419,13 +1420,13 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
       message: null,
       currentRoute: 'orders',
       user: req.session.user,
-      selectedStatus: req.query.status || "",
-      selectedHandle: req.query.handle || "",
+      selectedStatus,
+      selectedHandle,
       selectedDate,
       search,
       currentPage,
       totalPages,
-      mix, // pass mix to EJS
+      mix,
       duplicate,
       dayPending
     });
@@ -1438,14 +1439,27 @@ app.get('/admin/orders', isAuthenticated, hasPermission('orders'), async (req, r
       user: req.session.user,
       selectedStatus: req.query.status || "",
       selectedHandle: req.query.handle || "",
-      selectedDate,
-      search,
+      selectedDate: req.query.date || "",
+      search: req.query.search || "",
       currentPage: 1,
-      totalPages: 1
+      totalPages: 1,
+      mix: false,
+      duplicate: false,
+      dayPending: false
     });
   }
 });
 
+
+// Helper: redirect back to the orders page preserving current filters via Referer header
+function ordersRedirectBack(req, res) {
+  const back = req.get('Referer');
+  if (back && back.includes('/admin/orders')) {
+    res.redirect(back);
+  } else {
+    res.redirect('/admin/orders');
+  }
+}
 
 // ✅ Toggle lock / unlock
 app.post('/admin/orders/toggle-lock/:id', isAuthenticated, hasPermission('orders'), async (req, res) => {
@@ -1461,17 +1475,10 @@ app.post('/admin/orders/toggle-lock/:id', isAuthenticated, hasPermission('orders
       order.handledBy = null;
     }
     await order.save();
-    const next = req.body.nextHandle;
-    let redirectUrl = '/admin/orders';
-    if (next === 'Handled') {
-      redirectUrl += '?handle=Handled';
-    } else if (next === 'Unhandled') {
-      redirectUrl += '?handle=Unhandled';
-    }
-    res.redirect(redirectUrl);
+    ordersRedirectBack(req, res);
   } catch (err) {
     console.error(err);
-    res.redirect('/admin/orders');
+    ordersRedirectBack(req, res);
   }
 });
 // ✅ Add review — allowed if not in progress or if handled by this user
@@ -1488,15 +1495,15 @@ app.post('/admin/orders/add-review', isAuthenticated, hasPermission('orders'), a
       await order.save();
     }
 
-    res.redirect('/admin/orders');
+    ordersRedirectBack(req, res);
   } catch (err) {
     console.error(err);
-    res.redirect('/admin/orders');
+    ordersRedirectBack(req, res);
   }
 });
 app.post('/admin/orders/update-call-status', isAuthenticated, hasPermission('orders'), async (req, res) => {
   const { orderId, callStatus } = req.body;
-  if (!['Answered', 'Declined', 'Pending', 'Cancelled', 'Not-Attend', 'Power Off', 'Confirmed', 'Day Pending'].includes(callStatus)) return res.redirect('/admin/orders');
+  if (!['Answered', 'Declined', 'Pending', 'Cancelled', 'Not-Attend', 'Power Off', 'Confirmed', 'Day Pending'].includes(callStatus)) return ordersRedirectBack(req, res);
 
   try {
     const order = await LandingOrder.findById(orderId);
@@ -1504,10 +1511,10 @@ app.post('/admin/orders/update-call-status', isAuthenticated, hasPermission('ord
       order.callStatus = callStatus;
       await order.save();
     }
-    res.redirect('/admin/orders');
+    ordersRedirectBack(req, res);
   } catch (err) {
     console.error('Error updating call status:', err);
-    res.redirect('/admin/orders');
+    ordersRedirectBack(req, res);
   }
 });
 
@@ -1515,10 +1522,10 @@ app.post('/admin/orders/update-call-status', isAuthenticated, hasPermission('ord
 app.post('/admin/orders/delete/:id', isAuthenticated, hasPermission('orders'), async (req, res) => {
   try {
     await LandingOrder.findByIdAndDelete(req.params.id);
-    res.redirect('/admin/orders');
+    ordersRedirectBack(req, res);
   } catch (err) {
     console.error('Error deleting order:', err);
-    res.redirect('/admin/orders');
+    ordersRedirectBack(req, res);
   }
 });
 
