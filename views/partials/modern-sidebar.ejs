@@ -45,6 +45,19 @@
         <div class="ml-auto w-1.5 h-1.5 rounded-full" style="background: #FCA311;"></div>
       <% } %>
     </a>
+
+    <a href="/admin/attendence"
+      class="sidebar-item group flex items-center px-4 py-3 rounded-xl transition-all duration-200 <%= currentRoute === 'attendence' ? 'shadow-md' : 'hover:bg-white/[0.06]' %>"
+      <% if (currentRoute === 'attendence') { %>style="background: rgba(252, 163, 17, 0.15);"<% } %>>
+      <div class="flex items-center justify-center w-9 h-9 rounded-lg mr-3 transition-transform <%= currentRoute === 'attendence' ? '' : 'group-hover:scale-105' %>"
+           style="background: <%= currentRoute === 'attendence' ? '#FCA311' : 'rgba(255,255,255,0.08)' %>;">
+        <i class="fa-solid fa-user-clock text-white text-sm"></i>
+      </div>
+      <span class="sidebar-text text-sm font-medium <%= currentRoute === 'attendence' ? 'text-white' : 'text-gray-300' %>">Attendance</span>
+      <% if (currentRoute === 'attendence') { %>
+        <div class="ml-auto w-1.5 h-1.5 rounded-full" style="background: #FCA311;"></div>
+      <% } %>
+    </a>
     
     <% if (user.permissions && user.permissions.includes('orders')) { %>
       <a href="/admin/orders"
